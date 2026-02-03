@@ -143,6 +143,7 @@ namespace highway
     void Client::process_packet()
     {
         PacketType type = static_cast<PacketType>(header_.type);
+        std::cout << "[CLIENT] Received packet type=" << static_cast<int>(type) << std::endl;
 
         switch (type)
         {
@@ -159,20 +160,25 @@ namespace highway
             handle_pingresp();
             break;
         default:
+            std::cout << "[CLIENT] Unknown packet type" << std::endl;
             break;
         }
     }
 
     void Client::handle_connack()
     {
+        std::cout << "[CLIENT] Received CONNACK, payload size=" << payload_buffer_.size() << std::endl;
+        
         if (payload_buffer_.size() >= 2)
         {
             ConnectResult result = static_cast<ConnectResult>(payload_buffer_[1]);
+            std::cout << "[CLIENT] CONNACK result=" << static_cast<int>(result) << std::endl;
 
             if (result == ConnectResult::Accepted)
             {
                 connected_ = true;
                 start_keepalive();
+                std::cout << "[CLIENT] Connection accepted, calling connect_handler" << std::endl;
 
                 if (connect_handler_)
                 {
@@ -190,6 +196,10 @@ namespace highway
                     connect_handler_(false);
                 }
             }
+        }
+        else
+        {
+            std::cout << "[CLIENT] Invalid CONNACK payload size" << std::endl;
         }
     }
 
@@ -267,8 +277,12 @@ namespace highway
 
     void Client::subscribe(const std::string &topic, QoS qos)
     {
+        std::cout << "[CLIENT] subscribe() called for: " << topic 
+                  << ", connected=" << connected_.load() << std::endl;
+                  
         if (!connected_)
         {
+            std::cout << "[CLIENT] Not connected, cannot subscribe" << std::endl;
             return;
         }
 
@@ -277,6 +291,7 @@ namespace highway
         sub.topics.emplace_back(topic, qos);
 
         Packet packet = Packet::create(PacketType::SUBSCRIBE, 0x02, sub.serialize());
+        std::cout << "[CLIENT] Sending SUBSCRIBE packet, size=" << packet.serialize().size() << std::endl;
         send(packet);
     }
 
@@ -302,24 +317,17 @@ namespace highway
 
     void Client::send_raw(std::vector<uint8_t> data)
     {
-        auto self = shared_from_this();
-
-        bool was_empty = write_queue_.empty();
+        std::lock_guard<std::mutex> lock(write_mutex_);
         write_queue_.push_back(std::move(data));
-
-        if (was_empty)
+        
+        if (write_queue_.size() == 1)
         {
-            write_next();
+            do_write();
         }
     }
 
-    void Client::write_next()
+    void Client::do_write()
     {
-        if (write_queue_.empty())
-        {
-            return;
-        }
-
         auto self = shared_from_this();
         boost::asio::async_write(socket_,
                                  boost::asio::buffer(write_queue_.front()),
@@ -327,10 +335,11 @@ namespace highway
                                  {
                                      if (!ec)
                                      {
+                                         std::lock_guard<std::mutex> lock(write_mutex_);
                                          write_queue_.pop_front();
                                          if (!write_queue_.empty())
                                          {
-                                             write_next();
+                                             do_write();
                                          }
                                      }
                                      else if (ec != boost::asio::error::operation_aborted)
@@ -341,6 +350,12 @@ namespace highway
                                          }
                                      }
                                  });
+    }
+
+    void Client::write_next()
+    {
+        // Deprecated, kept for compatibility
+        do_write();
     }
 
     void Client::run()

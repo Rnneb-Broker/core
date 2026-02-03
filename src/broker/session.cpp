@@ -257,42 +257,60 @@ namespace highway
     {
         auto self = shared_from_this();
 
-        bool was_empty = write_queue_.empty();
+        std::lock_guard<std::mutex> lock(write_mutex_);
         write_queue_.push_back(std::move(data));
 
-        if (was_empty)
+        // Only start writing if we weren't already writing
+        if (!writing_.exchange(true))
         {
-            write_next();
+            do_write();
         }
     }
 
-    void Session::write_next()
+    void Session::do_write()
     {
-        if (write_queue_.empty())
+        // Copy front of queue while holding lock
+        std::vector<uint8_t> data;
         {
-            return;
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            if (write_queue_.empty())
+            {
+                writing_ = false;
+                return;
+            }
+            data = write_queue_.front();
         }
 
         auto self = shared_from_this();
         boost::asio::async_write(
             socket_,
-            boost::asio::buffer(write_queue_.front()),
+            boost::asio::buffer(data),
             [this, self](boost::system::error_code ec, std::size_t)
             {
                 if (!ec)
                 {
                     messages_sent_.fetch_add(1, std::memory_order_relaxed);
-                    write_queue_.pop_front();
-                    if (!write_queue_.empty())
+                    
                     {
-                        write_next();
+                        std::lock_guard<std::mutex> lock(write_mutex_);
+                        write_queue_.pop_front();
                     }
+                    
+                    // Continue writing if there's more
+                    do_write();
                 }
                 else if (ec != boost::asio::error::operation_aborted)
                 {
+                    writing_ = false;
                     close();
                 }
             });
+    }
+
+    void Session::write_next()
+    {
+        // Deprecated - kept for compatibility, use do_write instead
+        do_write();
     }
 
     void Session::deliver(const std::string &topic, const std::vector<uint8_t> &payload, QoS qos)

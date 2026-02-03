@@ -14,6 +14,11 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
+# Suppress false-positive warning from Boost.Asio's resolver (GCC bug with memcpy bounds check)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-stringop-overflow)
+endif()
+
 # Policy to use config-based package finding
 cmake_policy(SET CMP0167 NEW)
 

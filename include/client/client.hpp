@@ -6,6 +6,7 @@
 #include <deque>
 #include <atomic>
 #include <thread>
+#include <mutex>
 
 #include "protocol/packet.hpp"
 
@@ -115,6 +116,7 @@ namespace highway
         void process_packet();
         void send(const Packet &packet);
         void send_raw(std::vector<uint8_t> data);
+        void do_write();
         void write_next();
         void send_connect_packet();
         void handle_connack();
@@ -133,6 +135,7 @@ namespace highway
         PacketHeader header_;
         std::vector<uint8_t> payload_buffer_;
         std::deque<std::vector<uint8_t>> write_queue_;
+        std::mutex write_mutex_;
 
         std::atomic<bool> connected_{false};
         std::atomic<bool> running_{false};

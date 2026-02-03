@@ -5,6 +5,7 @@
 #include <deque>
 #include <unordered_set>
 #include <atomic>
+#include <mutex>
 
 #include "protocol/packet.hpp"
 
@@ -77,6 +78,7 @@ namespace highway
         void read_payload(uint16_t length);
         void process_packet();
         void write_next();
+        void do_write();
 
         // Packet handlers
         void handle_connect();
@@ -104,7 +106,8 @@ namespace highway
         PacketHeader header_;
         std::vector<uint8_t> payload_buffer_;
 
-        // Write queue
+        // Write queue (protected by write_mutex_)
+        std::mutex write_mutex_;
         std::deque<std::vector<uint8_t>> write_queue_;
         std::atomic<bool> writing_{false};
 
