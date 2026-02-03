@@ -1,5 +1,6 @@
 #include "core//node.hpp"
 #include "core/peer_connection.hpp"
+#include "helpers/load_to_server.hpp"
 
 Node::Node(uint64_t id, uint16_t port)
     : io_(),
@@ -24,9 +25,51 @@ void Node::set_receive_handler(ReceiveHandler handler)
     receive_handler_ = std::move(handler);
 }
 
-void Node::default_receive_handler(uint64_t node_id, uint64_t from_id, const std::string &message)
+void Node::default_receive_handler(uint64_t node_id, uint64_t from_id, const std::string &msg)
 {
-    std::cout << "[NODE " << node_id << "] received from " << from_id << ": " << message << std::endl;
+    if (msg.size() < sizeof(uint64_t) * 2)
+    {
+        return;
+    }
+
+    uint64_t ts;
+    uint64_t seq;
+
+    std::memcpy(&ts, msg.data() + sizeof(uint64_t), sizeof(uint64_t));
+    std::memcpy(&seq, msg.data(), sizeof(uint64_t));
+
+    uint64_t latency = now_ns() - ts;
+
+    std::cout << "[NODE " << node_id << "] "
+              << "from=" << from_id << " seq=" << seq;
+
+    size_t latencyUniform;
+    std::string unit;
+
+    if (latency < 1'000) // < 1 µs
+    {
+        latencyUniform = 1;
+        unit = "ns";
+    }
+    else if (latency < 1'000'000) // < 1 ms
+    {
+        latencyUniform = 1'000;
+        unit = "µs";
+    }
+    else if (latency < 1'000'000'000) // < 1 s
+    {
+        latencyUniform = 1'000'000;
+        unit = "ms";
+    }
+    else
+    {
+        latencyUniform = 1'000'000'000;
+        unit = "s";
+    }
+
+    std::cout
+        << " latency(" << unit << ")=" << (float)latency / latencyUniform << std::endl;
+    return;
 }
 
 void Node::run()

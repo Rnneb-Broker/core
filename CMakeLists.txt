@@ -11,7 +11,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 # find_package(SDL2 REQUIRED)
 
 # Sources
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(relay ${SOURCES})
 

@@ -1,33 +1,30 @@
 #include "core/node.hpp"
+#include "helpers/connect_server_client_arch.hpp"
+#include "helpers/fill_nodes_vetor.hpp"
+#include "helpers/load_to_server.hpp"
 #include <chrono>
 #include <thread>
 #include <iostream>
+
+#define NODES_COLLECTION_SIZE 2
 
 int main()
 {
   try
   {
-    // Create two nodes
-    Node node1(1, 9001);
-    Node node2(2, 9002);
+    std::vector<std::shared_ptr<Node>> nodes = fill_nodes_vector(NODES_COLLECTION_SIZE);
+    connect_server_client_arch(nodes);
 
-    // Start their io_context threads
-    node1.run();
-    node2.run();
+    std::vector<std::thread> threads;
+    threads.reserve(nodes.size());
 
-    // Connect node1 -> node2
-    node1.connect(node2);
-
-    // Optional: send a message
-    node1.send(2, "hello from node 1");
-
-    // Keep process alive
-    while (tan)
+    for (auto &node : nodes)
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds(100));
-      node1.send(2, "hello from node 1");
-      node2.send(1, "hello from node 2");
+      threads.emplace_back(load_to_server, node, 0UL);
     }
+
+    for (auto &t : threads)
+      t.join();
   }
   catch (const std::exception &e)
   {
