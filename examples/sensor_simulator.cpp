@@ -49,13 +49,19 @@ public:
     void stop()
     {
         running_ = false;
+        if (publish_thread_.joinable())
+        {
+            publish_thread_.join();
+        }
         client_->stop();
     }
 
 private:
     void start_publishing()
     {
-        running_ = true;
+        std::cout << "[SENSOR] :" << sensor_id_ << " start publishing" << std::endl;
+        running_ = true; // Must set to true BEFORE starting the thread!
+
         publish_thread_ = std::thread([this]()
                                       {
             std::uniform_int_distribution<uint64_t> car_dist(1, 100000);
@@ -70,7 +76,9 @@ private:
                 );
                 
                 client_->publish(event.topic(), event.serialize());
-                
+                std::cout << "[SENSOR] :" << sensor_id_
+                          << "\t [CAR] :" << car_dist(rng_)
+                          << "\t [SPEED] :" << std::max(0.0f, speed_dist(rng_)) << std::endl;
                 // Simulate sensor rate (100 events/sec)
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             } });

@@ -168,7 +168,7 @@ namespace highway
     void Client::handle_connack()
     {
         std::cout << "[CLIENT] Received CONNACK, payload size=" << payload_buffer_.size() << std::endl;
-        
+
         if (payload_buffer_.size() >= 2)
         {
             ConnectResult result = static_cast<ConnectResult>(payload_buffer_[1]);
@@ -254,8 +254,9 @@ namespace highway
 
     void Client::publish(const std::string &topic, const std::vector<uint8_t> &payload, QoS qos)
     {
-        if (!connected_)
+        if (!connected_.load())
         {
+            std::cerr << "[CLIENT] publish() called but not connected yet!" << std::endl;
             return;
         }
 
@@ -277,9 +278,9 @@ namespace highway
 
     void Client::subscribe(const std::string &topic, QoS qos)
     {
-        std::cout << "[CLIENT] subscribe() called for: " << topic 
+        std::cout << "[CLIENT] subscribe() called for: " << topic
                   << ", connected=" << connected_.load() << std::endl;
-                  
+
         if (!connected_)
         {
             std::cout << "[CLIENT] Not connected, cannot subscribe" << std::endl;
@@ -317,33 +318,51 @@ namespace highway
 
     void Client::send_raw(std::vector<uint8_t> data)
     {
-        std::lock_guard<std::mutex> lock(write_mutex_);
-        write_queue_.push_back(std::move(data));
-        
-        if (write_queue_.size() == 1)
+        bool start_write = false;
         {
-            do_write();
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            write_queue_.push_back(std::move(data));
+            start_write = !writing_.exchange(true);
+        }
+
+        if (start_write)
+        {
+            boost::asio::post(io_context_, [this, self = shared_from_this()]()
+                              { do_write(); });
         }
     }
 
     void Client::do_write()
     {
+        // Copy front of queue while holding lock
+        std::vector<uint8_t> data;
+        {
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            if (write_queue_.empty())
+            {
+                writing_ = false;
+                return;
+            }
+            data = write_queue_.front();
+        }
+
         auto self = shared_from_this();
         boost::asio::async_write(socket_,
-                                 boost::asio::buffer(write_queue_.front()),
+                                 boost::asio::buffer(data),
                                  [this, self](boost::system::error_code ec, std::size_t)
                                  {
                                      if (!ec)
                                      {
-                                         std::lock_guard<std::mutex> lock(write_mutex_);
-                                         write_queue_.pop_front();
-                                         if (!write_queue_.empty())
                                          {
-                                             do_write();
+                                             std::lock_guard<std::mutex> lock(write_mutex_);
+                                             write_queue_.pop_front();
                                          }
+                                         // Continue writing if there's more
+                                         do_write();
                                      }
                                      else if (ec != boost::asio::error::operation_aborted)
                                      {
+                                         writing_ = false;
                                          if (error_handler_)
                                          {
                                              error_handler_("Write error: " + ec.message());

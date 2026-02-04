@@ -136,6 +136,7 @@ namespace highway
         std::vector<uint8_t> payload_buffer_;
         std::deque<std::vector<uint8_t>> write_queue_;
         std::mutex write_mutex_;
+        std::atomic<bool> writing_{false};
 
         std::atomic<bool> connected_{false};
         std::atomic<bool> running_{false};

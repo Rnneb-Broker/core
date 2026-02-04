@@ -255,15 +255,18 @@ namespace highway
 
     void Session::send_raw(std::vector<uint8_t> data)
     {
-        auto self = shared_from_this();
-
-        std::lock_guard<std::mutex> lock(write_mutex_);
-        write_queue_.push_back(std::move(data));
-
-        // Only start writing if we weren't already writing
-        if (!writing_.exchange(true))
+        bool start_write = false;
         {
-            do_write();
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            write_queue_.push_back(std::move(data));
+            start_write = !writing_.exchange(true);
+        }
+
+        if (start_write)
+        {
+            auto self = shared_from_this();
+            boost::asio::post(socket_.get_executor(), [this, self]()
+                              { do_write(); });
         }
     }
 
@@ -290,12 +293,12 @@ namespace highway
                 if (!ec)
                 {
                     messages_sent_.fetch_add(1, std::memory_order_relaxed);
-                    
+
                     {
                         std::lock_guard<std::mutex> lock(write_mutex_);
                         write_queue_.pop_front();
                     }
-                    
+
                     // Continue writing if there's more
                     do_write();
                 }

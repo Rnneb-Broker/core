@@ -45,20 +45,32 @@ int main(int argc, char *argv[])
         g_broker = std::make_shared<highway::Broker>(config);
         g_broker->start();
 
+        bool tick = true;
+
         // Keep main thread alive and print stats periodically
         while (g_broker->is_running())
         {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::seconds(5));
 
             if (g_broker->is_running())
             {
                 auto stats = g_broker->get_stats();
-                std::cout << "\n[STATS] Connections: " << stats.active_connections
-                          << " | Topics: " << stats.topics_count
-                          << " | Subscriptions: " << stats.subscriptions_count
-                          << " | Msgs In: " << stats.total_messages_in
-                          << " | Msgs Out: " << stats.total_messages_out
+                std::cout << "\n"
+                          << (tick
+                                  ? "-"
+                                  : "|")
+                          << "[STATS] Connections : " << stats.active_connections
+                          << " | Topics: "
+                          << stats.topics_count
+                          << " | Subscriptions: "
+                          << stats.subscriptions_count
+                          << " | Msgs In: "
+                          << stats.total_messages_in
+                          << " | Msgs Out: "
+                          << stats.total_messages_out
                           << std::endl;
+
+                tick = !tick;
             }
         }
     }

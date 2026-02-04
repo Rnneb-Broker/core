@@ -188,5 +188,7 @@ int main(int argc, char *argv[])
     TrafficMonitor monitor(broker_host, broker_port);
     monitor.start();
 
+    std::cin.get();
+    monitor.stop();
     return 0;
 }
