@@ -79,18 +79,10 @@ target_link_libraries(traffic_monitor PRIVATE highway_client pthread)
 # ============================================================================
 # Legacy P2P Relay (keep for reference)
 # ============================================================================
-set(LEGACY_SOURCES
-    src/main.cpp
-    src/core/node.cpp
-    src/core/peer_connection.cpp
-    src/core/peer_manager.cpp
-    src/core/router.cpp
-    src/helpers/connect_server_client_arch.cpp
-    src/helpers/fill_nodes_vetor.cpp
-)
+
 
 # Check if ALL legacy files exist
-set(LEGACY_EXISTS TRUE)
+set(LEGACY_EXISTS FALSE)
 foreach(src ${LEGACY_SOURCES})
     if(NOT EXISTS "${CMAKE_SOURCE_DIR}/${src}")
         set(LEGACY_EXISTS FALSE)
