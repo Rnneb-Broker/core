@@ -46,6 +46,7 @@ set(BROKER_SOURCES
     src/broker_main.cpp
     src/broker/broker.cpp
     src/broker/session.cpp
+    src/broker/storage_manager.cpp
 )
 
 add_executable(broker ${BROKER_SOURCES})
