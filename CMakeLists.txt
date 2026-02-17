@@ -22,8 +22,9 @@ endif()
 # Policy to use config-based package finding
 cmake_policy(SET CMP0167 NEW)
 
-# Boost - using CONFIG mode for Conan-generated packages
+# Broker - using CONFIG mode for Conan-generated packages
 find_package(Boost REQUIRED COMPONENTS system CONFIG)
+find_package(GTest REQUIRED CONFIG)
 
 # ============================================================================
 # Core Library (shared between broker and client)
@@ -76,6 +77,17 @@ target_link_libraries(sensor_simulator PRIVATE highway_client pthread)
 add_executable(traffic_monitor examples/traffic_monitor.cpp)
 target_include_directories(traffic_monitor PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(traffic_monitor PRIVATE highway_client pthread)
+
+# ============================================================================
+# Tests
+# ============================================================================
+enable_testing()
+
+add_executable(storage_manager_test tests/storage_manager_test.cpp)
+target_include_directories(storage_manager_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(storage_manager_test PRIVATE highway_core GTest::gtest GTest::gtest_main)
+
+add_test(NAME StorageManagerTests COMMAND storage_manager_test)
 
 # ============================================================================
 # Legacy P2P Relay (keep for reference)
