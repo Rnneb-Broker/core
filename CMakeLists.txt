@@ -83,9 +83,12 @@ target_link_libraries(traffic_monitor PRIVATE highway_client pthread)
 # ============================================================================
 enable_testing()
 
-add_executable(storage_manager_test tests/storage_manager_test.cpp)
+add_executable(storage_manager_test
+    tests/storage_manager_test.cpp
+    src/broker/storage_manager.cpp
+)
 target_include_directories(storage_manager_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(storage_manager_test PRIVATE highway_core GTest::gtest GTest::gtest_main)
+target_link_libraries(storage_manager_test PRIVATE highway_core GTest::gtest GTest::gtest_main pthread)
 
 add_test(NAME StorageManagerTests COMMAND storage_manager_test)
 

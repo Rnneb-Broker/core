@@ -101,5 +101,7 @@ environment_run.sh.env
 build/
 .cache/
 
-
+docs/plans
+.ai
 tasks.md
+/Testing/

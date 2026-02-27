@@ -13,7 +13,6 @@ namespace highway
 {
 
     class Session;
-
     /**
      * Subscription entry
      */
