@@ -9,7 +9,8 @@ Broker::Broker() : Broker(Config{}) {}
 Broker::Broker(Config config)
     : config_(std::move(config)), io_context_(),
       acceptor_(io_context_, tcp::endpoint(tcp::v4(), config_.port)),
-      work_guard_(boost::asio::make_work_guard(io_context_)) {
+      work_guard_(boost::asio::make_work_guard(io_context_)),
+      storage_manager_(this, highway::StorageManager::Config()) {
 
   // Configure acceptor for high performance
   acceptor_.set_option(tcp::acceptor::reuse_address(true));
@@ -33,6 +34,10 @@ void Broker::start() {
   std::cout << "[BROKER] Starting on port " << config_.port << std::endl;
   std::cout << "[BROKER] IO threads: " << config_.io_threads << std::endl;
 
+  // Initialize the storage manager
+  storage_manager_.initialize();
+  storage_manager_.start_retention_cleanup();
+  
   // Start accepting connections
   accept_loop();
 
@@ -67,6 +72,9 @@ void Broker::stop() {
     }
     sessions_.clear();
   }
+
+  // Stop The storage manager
+  storage_manager_.shutdown();
 
   // Stop IO context
   work_guard_.reset();
@@ -145,15 +153,14 @@ void Broker::on_publish(const std::string &topic,
   // Register topic if new
   topic_manager_.register_topic(topic);
 
+  // Write to logs
+  storage_manager_.on_publish(topic,payload);
+
+
   // Find all matching subscribers
   auto subscribers = subscription_manager_.get_subscribers(topic);
 
-  std::cout << std::endl;
 
-  for (auto p : payload) {
-    std::cout << p;
-  }
-  std::cout << std::endl;
   // Deliver to each subscriber
   for (const auto &sub : subscribers) {
 

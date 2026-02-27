@@ -79,7 +79,7 @@ struct SegmentMetadata {
  */
 class Buffer {
 public:
-  explicit Buffer(size_t capacity = 16 * 1024 * 1024); // 16MB default
+  explicit Buffer(size_t capacity = 16 * 1024 *   1024); // 16MB default
   ~Buffer() = default;
 
   // Non-copyable
@@ -195,7 +195,8 @@ class FlushWorker; // Forward declaration
  */
 class SegmentLog {
 public:
-  explicit SegmentLog(const std::string &topic);
+  explicit SegmentLog(const std::string &topic, const std::string&  storage_root_ = "./storage");
+
   ~SegmentLog();
 
   // Non-copyable, non-movable
@@ -328,6 +329,12 @@ private:
 
   std::string topic_;
   std::atomic<uint64_t> next_offset_{0}; // Single-writer offset counter
+
+  std::string storage_root_;
+
+  mutable std::mutex flush_signal_mutex_;  // Protects flush_signal_cv_
+  std::condition_variable flush_signal_cv_;  // Signals flush thread
+
 
   // Double-buffered write
   Buffer buffer_pool_[2];               // Pre-allocated buffers

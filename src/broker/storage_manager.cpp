@@ -104,8 +104,9 @@ size_t SparseIndex::size() const {
 // SegmentLog Implementation
 // ============================================================================
 
-SegmentLog::SegmentLog(const std::string &topic)
+SegmentLog::SegmentLog(const std::string &topic, const std::string&  storage_root)
     : topic_(topic),
+      storage_root_(storage_root),
       buffer_pool_{Buffer(16 * 1024 * 1024), Buffer(16 * 1024 * 1024)} {
   active_buffer_.store(&buffer_pool_[0], std::memory_order_release);
   flush_buffer_.store(&buffer_pool_[1], std::memory_order_release);
@@ -143,8 +144,12 @@ bool SegmentLog::should_flush() const {
 }
 
 void SegmentLog::signal_flush() {
-  // Flush worker will call this or monitor should_flush()
-  // Placeholder for notification mechanism (handled by FlushWorker)
+  // Notify waiting flush worker that buffer needs flushing
+  {
+    std::lock_guard<std::mutex> lock(flush_signal_mutex_);
+    // Lock held, now notify condition variable
+  }
+  flush_signal_cv_.notify_one();
 }
 
 Buffer *SegmentLog::acquire_flush_buffer() {
@@ -288,6 +293,7 @@ void SegmentLog::write_message_to_buffer(Buffer *buf, uint64_t offset,
 
 std::string SegmentLog::make_segment_filename(uint64_t base_offset) const {
   std::ostringstream oss;
+  oss << storage_root_ << "/" << topic_ << "/";
   oss << std::setfill('0') << std::setw(20) << base_offset << ".log";
   return oss.str();
 }
@@ -389,11 +395,12 @@ FlushWorker::Stats FlushWorker::get_stats() const {
 }
 
 void FlushWorker::worker_loop() {
+  
   while (running_.load(std::memory_order_acquire)) {
-    // Wait for signal or timeout
+    // Wait for signal from SegmentLog or timeout
     {
-      std::unique_lock lock(signal_mutex_);
-      signal_cv_.wait_for(lock, std::chrono::milliseconds(100), [this] {
+      std::unique_lock<std::mutex> lock(log_->flush_signal_mutex_);
+      log_->flush_signal_cv_.wait_for(lock, std::chrono::milliseconds(100), [this] {
         return !running_.load(std::memory_order_acquire);
       });
     }
@@ -421,18 +428,38 @@ void FlushWorker::worker_loop() {
 
 void FlushWorker::flush_buffer(Buffer *buf) {
   // TODO: Write buffer to segment, update index, fsync
+  
+  //?DEBUG:
+  std::cout<< "[Flush Buffer ]" << (!buf ? "NULL" : "NOT NULL") << "\n";  
+  
+  if (!buf || buf->size() == 0)
+    return;
+
   auto *index = log_->get_active_index();
   if (!index)
     return;
 
-  // Scan messages in buffer and populate sparse index
+  auto *segment = log_->get_or_create_active_segment();
+  if (!segment)
+    return;
+
+  // Record starting file position for this buffer
+  uint64_t file_position = segment->byte_position;
   const uint8_t *data = buf->data();
   size_t pos = 0;
-  uint64_t file_position = buf->segment_start();
 
+  // Scan messages in buffer
   while (pos < buf->size()) {
-    MessageHeader *hdr =
-        reinterpret_cast<MessageHeader *>((uint8_t *)data + pos);
+    MessageHeader *hdr = reinterpret_cast<MessageHeader *>(
+        const_cast<uint8_t *>(data) + pos);
+
+    // Validate CRC before writing
+    boost::crc_32_type crc;
+    const uint8_t *payload = data + pos + sizeof(MessageHeader);
+    crc.process_bytes(payload, hdr->size);
+    if (crc.checksum() != hdr->crc32) {
+      throw std::runtime_error("CRC mismatch in flush_buffer");
+    }
 
     // Add to sparse index every 1024 messages
     if (hdr->offset % 1024 == 0) {
@@ -443,10 +470,68 @@ void FlushWorker::flush_buffer(Buffer *buf) {
     file_position += msg_size;
     pos += msg_size;
   }
+
+  // Write entire buffer to segment file
+  write_to_segment(buf, *segment);
+
+  // Check if segment is full, rotate if needed
+  if (segment->byte_position >= segment->max_size_bytes) {
+    log_->rotate_segment();
+  }
 }
 
 void FlushWorker::write_to_segment(Buffer *buf, SegmentMetadata &segment) {
-  // TODO: Actually write to segment file
+ 
+
+  if (!buf || buf->size() == 0)
+    return;
+
+  int fd = ::open(segment.file_path.c_str(), O_WRONLY);
+  if (fd < 0) {
+    throw std::runtime_error(std::string("Failed to open segment: ") +
+                             segment.file_path);
+  }
+
+  // Seek to current write position
+  if (::lseek(fd, segment.byte_position, SEEK_SET) !=
+      (off_t)segment.byte_position) {
+    ::close(fd);
+    throw std::runtime_error(std::string("Failed to seek in segment: ") +
+                             segment.file_path);
+  }
+
+  // Write buffer data
+  const uint8_t *data = buf->data();
+  size_t remaining = buf->size();
+  uint64_t written_pos = 0;
+
+  while (remaining > 0) {
+    ssize_t n = ::write(fd, data + written_pos, remaining);
+    if (n <= 0) {
+      ::close(fd);
+      throw std::runtime_error(std::string("Failed to write to segment: ") +
+                               segment.file_path);
+    }
+    written_pos += n;
+    remaining -= n;
+  }
+
+  // fsync based on durability mode
+  if (mode_ == DurabilityMode::SAFE ||
+      (mode_ == DurabilityMode::BALANCED &&
+       segment.byte_position + buf->size() >= segment.max_size_bytes)) {
+    if (::fsync(fd) != 0) {
+      ::close(fd);
+      throw std::runtime_error(std::string("Failed to fsync segment: ") +
+                               segment.file_path);
+    }
+  }
+
+  ::close(fd);
+
+  // Update segment metadata
+  segment.byte_position += buf->size();
+  // segment.last_offset = next_offset_.load(std::memory_order_acquire) - 1;
 }
 
 void FlushWorker::handle_flush_error(const std::string &topic, int error_code,
@@ -501,12 +586,12 @@ void StorageManager::on_publish(const std::string &topic,
   if (log) {
     log->append(payload);
 
-    // Check if buffer needs flushing
-    if (log->should_flush()) {
-      auto *worker = get_or_create_flush_worker(log);
-      if (worker) {
-        worker->signal();
-      }
+    // Always get or create flush worker and signal it
+    // This ensures immediate flushing even for small messages
+    auto *worker = get_or_create_flush_worker(log);
+    if (worker) {
+      // Signal the worker to wake up and check for data
+      log->signal_flush();
     }
   }
 }
@@ -608,7 +693,7 @@ SegmentLog *StorageManager::get_or_create_log(const std::string &topic) {
     std::unique_lock lock(logs_mutex_);
     auto it = logs_.find(topic);
     if (it == logs_.end()) {
-      logs_[topic] = std::make_unique<SegmentLog>(topic);
+      logs_[topic] = std::make_unique<SegmentLog>(topic, config_.storage_root);
     }
     return logs_[topic].get();
   }

@@ -9,7 +9,7 @@
 #include "broker/session.hpp"
 #include "broker/topic_manager.hpp"
 #include "broker/subscription_manager.hpp"
-
+#include "broker/storage_manager.hpp"
 namespace highway
 {
 
@@ -93,6 +93,7 @@ namespace highway
 
         TopicManager topic_manager_;
         SubscriptionManager subscription_manager_;
+        StorageManager storage_manager_;
 
         std::unordered_map<Session *, std::shared_ptr<Session>> sessions_;
         mutable std::mutex sessions_mutex_;
