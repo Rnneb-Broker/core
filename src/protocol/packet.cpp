@@ -92,7 +92,14 @@ namespace highway
     std::vector<uint8_t> Packet::serialize() const
     {
         std::vector<uint8_t> result(sizeof(PacketHeader) + payload.size());
-        std::memcpy(result.data(), &header, sizeof(PacketHeader));
+        
+        // Serialize header with network byte order (big-endian)
+        result[0] = header.type;
+        result[1] = header.flags;
+        // Convert remaining_len to network byte order (big-endian)
+        result[2] = static_cast<uint8_t>((header.remaining_len >> 8) & 0xFF);
+        result[3] = static_cast<uint8_t>(header.remaining_len & 0xFF);
+        
         if (!payload.empty())
         {
             std::memcpy(result.data() + sizeof(PacketHeader), payload.data(), payload.size());

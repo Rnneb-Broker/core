@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
         // Keep main thread alive and print stats periodically
         while (g_broker->is_running())
         {
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            std::this_thread::sleep_for(std::chrono::seconds(10));
 
             if (g_broker->is_running())
             {

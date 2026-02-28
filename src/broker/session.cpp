@@ -33,10 +33,20 @@ void Session::close() {
 
 void Session::read_header() {
   auto self = shared_from_this();
+  
+  // Use shared_ptr to keep the buffer alive during async operation
+  auto header_bytes = std::make_shared<std::array<uint8_t, 4>>();
+  
   boost::asio::async_read(
-      socket_, boost::asio::buffer(&header_, sizeof(PacketHeader)),
-      [this, self](boost::system::error_code ec, std::size_t) {
+      socket_, boost::asio::buffer(*header_bytes, 4),
+      [this, self, header_bytes](boost::system::error_code ec, std::size_t bytes_read) {
         if (!ec) {
+          // Manually parse the header bytes
+          header_.type = (*header_bytes)[0];
+          header_.flags = (*header_bytes)[1];
+          // Convert from network byte order (big-endian) to host byte order
+          header_.remaining_len = ((*header_bytes)[2] << 8) | (*header_bytes)[3];
+          
           if (header_.remaining_len > 0) {
             read_payload(header_.remaining_len);
           } else {
@@ -51,15 +61,18 @@ void Session::read_header() {
 }
 
 void Session::read_payload(uint16_t length) {
+  // std::cout << "[DEBUG:READ_PLD] Reading " << length << " bytes payload..." << std::endl;
   payload_buffer_.resize(length);
   auto self = shared_from_this();
   boost::asio::async_read(
       socket_, boost::asio::buffer(payload_buffer_),
-      [this, self](boost::system::error_code ec, std::size_t) {
+      [this, self, length](boost::system::error_code ec, std::size_t bytes_read) {
         if (!ec) {
+          // std::cout << "[DEBUG:READ_PLD] Received " << bytes_read << " bytes" << std::endl;
           process_packet();
           read_header();
         } else if (ec != boost::asio::error::operation_aborted) {
+          // std::cout << "[DEBUG:READ_PLD] ERROR: " << ec.message() << std::endl;
           close();
         }
       });
@@ -67,9 +80,11 @@ void Session::read_payload(uint16_t length) {
 
 void Session::process_packet() {
   PacketType type = static_cast<PacketType>(header_.type);
+  // std::cout << "[DEBUG:PROCESS] packet type=0x" << std::hex << (int)header_.type << std::dec << std::endl;
 
   switch (type) {
   case PacketType::CONNECT:
+    // std::cout << "[DEBUG:PROCESS] CONNECT packet detected" << std::endl;
     handle_connect();
     break;
   case PacketType::PUBLISH:
@@ -203,16 +218,21 @@ void Session::handle_disconnect() {
 void Session::send(const Packet &packet) { send_raw(packet.serialize()); }
 
 void Session::send_raw(std::vector<uint8_t> data) {
+  // std::cout << "[DEBUG:SEND_RAW] Sending " << data.size() << " bytes" << std::endl;
   bool start_write = false;
   {
     std::lock_guard<std::mutex> lock(write_mutex_);
     write_queue_.push_back(std::move(data));
+    // std::cout << "[DEBUG:SEND_RAW] Queued. Queue size: " << write_queue_.size() << std::endl;
     start_write = !writing_.exchange(true);
   }
 
   if (start_write) {
+    // std::cout << "[DEBUG:SEND_RAW] Posting async write" << std::endl;
     auto self = shared_from_this();
     boost::asio::post(socket_.get_executor(), [this, self]() { do_write(); });
+  } else {
+    // std::cout << "[DEBUG:SEND_RAW] Write already in progress" << std::endl;
   }
 }
 
@@ -222,17 +242,21 @@ void Session::do_write() {
   {
     std::lock_guard<std::mutex> lock(write_mutex_);
     if (write_queue_.empty()) {
+      // std::cout << "[DEBUG:WRITE] Queue empty, stopping" << std::endl;
       writing_ = false;
       return;
     }
     data = write_queue_.front();
   }
 
+  // std::cout << "[DEBUG:WRITE] Writing " << data.size() << " bytes..." << std::endl;
+  
   auto self = shared_from_this();
   boost::asio::async_write(
       socket_, boost::asio::buffer(data),
-      [this, self](boost::system::error_code ec, std::size_t) {
+      [this, self, data](boost::system::error_code ec, std::size_t bytes_written) {
         if (!ec) {
+          // std::cout << "[DEBUG:WRITE] ✅ Wrote " << bytes_written << " bytes" << std::endl;
           messages_sent_.fetch_add(1, std::memory_order_relaxed);
 
           {
@@ -243,6 +267,7 @@ void Session::do_write() {
           // Continue writing if there's more
           do_write();
         } else if (ec != boost::asio::error::operation_aborted) {
+          // std::cout << "[DEBUG:WRITE] ❌ ERROR: " << ec.message() << std::endl;
           writing_ = false;
           close();
         }
@@ -274,6 +299,7 @@ void Session::send_connack(ConnectResult result) {
   packet.header.flags = 0;
   packet.header.remaining_len = 2;
   packet.payload = {0, static_cast<uint8_t>(result)};
+  
   send(packet);
 }
 

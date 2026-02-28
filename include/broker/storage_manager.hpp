@@ -348,7 +348,8 @@ private:
   std::unique_ptr<SparseIndex> active_index_;
 
   // Configuration
-  static constexpr uint64_t SEGMENT_SIZE_BYTES = 512ULL * 1024 * 1024; // 512MB
+  // TODO: Move it to 512 in prod 1 is just for testing
+  static constexpr uint64_t SEGMENT_SIZE_BYTES = 1ULL * 1024 * 1024; // 512MB
 
   // Helper methods
   void write_message_to_buffer(Buffer *buf, uint64_t offset,
