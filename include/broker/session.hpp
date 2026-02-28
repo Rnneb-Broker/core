@@ -117,6 +117,9 @@ namespace highway
         // Statistics
         std::atomic<uint64_t> messages_received_{0};
         std::atomic<uint64_t> messages_sent_{0};
+
+        // QoS packet tracking
+        std::atomic<uint16_t> last_packet_id_{0};  // Incremented for QoS > 0
     };
 
 } // namespace highway

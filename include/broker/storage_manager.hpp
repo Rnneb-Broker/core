@@ -434,6 +434,13 @@ private:
 
   FailureCallback failure_cb_;
 
+  // Statistics tracking
+  std::atomic<uint64_t> messages_flushed_{0};
+  std::atomic<uint64_t> bytes_written_{0};
+  std::atomic<uint64_t> flush_count_{0};
+  std::chrono::milliseconds last_latency_{0};
+  mutable std::mutex stats_mutex_;
+
   // Worker thread loop
   void worker_loop();
 

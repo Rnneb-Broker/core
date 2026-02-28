@@ -155,7 +155,12 @@ private:
                 std::cout << "*********************\n"
                           << std::endl;
 
-                // TODO: Publish alert to highway/{sensor_id}/alerts topic
+                // Publish alert to highway/{sensor_id}/alerts topic
+                std::string alert_topic = "highway/" + std::to_string(sensor_id) + "/alerts";
+                std::string alert_msg = "SLOW_TRAFFIC: Speed=" + std::to_string((int)avg_speed) + 
+                                       " km/h, Duration=" + std::to_string(slow_duration / 1000) + "s";
+                client_->publish(alert_topic, alert_msg, QoS::AtLeastOnce);
+                std::cout << "[MONITOR] Published alert to " << alert_topic << std::endl;
             }
         }
         else if (state.alert_active && slow_duration < SLOW_DURATION_MS / 2)

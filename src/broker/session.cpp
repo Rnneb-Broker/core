@@ -258,7 +258,8 @@ void Session::deliver(const std::string &topic,
                       const std::vector<uint8_t> &payload, QoS qos) {
   PublishPayload pub;
   pub.topic = topic;
-  pub.packet_id = 0; // TODO: generate for QoS > 0
+  // Generate packet_id for QoS > 0 (required for acknowledgment matching)
+  pub.packet_id = (qos > QoS::AtMostOnce) ? ++last_packet_id_ : 0;
   pub.data = payload;
 
   Packet packet = Packet::create(

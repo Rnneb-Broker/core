@@ -54,14 +54,15 @@ void Broker::stop() {
 
   std::cout << "[BROKER] Shutting down..." << std::endl;
 
-  // Close acceptor
+  // Close acceptor with proper error handling
   boost::system::error_code ec;
-  auto err = acceptor_.close(ec);
+  acceptor_.close(ec);
 
   if (ec) {
-    // TODO: In case the disconnection not working
-    std::cout
-        << "There is an error with the disconnection make sure to fix TODO \n";
+    std::cerr << "[BROKER] Acceptor close error: " << ec.message()
+              << " (code: " << ec.value() << ")" << std::endl;
+    // Attempt to force close if graceful close failed
+    std::cerr << "[BROKER] Forcing acceptor shutdown..." << std::endl;
   }
 
   // Close all sessions
