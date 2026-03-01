@@ -6,7 +6,7 @@
  * Monitors sensor telemetry and processes alerts
  */
 
-const { HighwayClient, QoS } = require('../highway-client.js');
+const { HighwayClient, QoS } = require('../../highway-client.js');
 
 const client = new HighwayClient({
   host: 'localhost',

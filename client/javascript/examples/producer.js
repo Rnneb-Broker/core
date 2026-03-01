@@ -6,7 +6,7 @@
  * Publishes messages to broker topics
  */
 
-const { HighwayClient, QoS } = require('../highway-client.js');
+const { HighwayClient, QoS } = require('../../highway-client.js');
 
 
 const isDebug = true;
