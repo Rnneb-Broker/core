@@ -84,7 +84,7 @@ void Session::process_packet() {
 
   switch (type) {
   case PacketType::CONNECT:
-    // std::cout << "[DEBUG:PROCESS] CONNECT packet detected" << std::endl;
+    std::cout << "[DEBUG:PROCESS] CONNECT packet detected" << std::endl;
     handle_connect();
     break;
   case PacketType::PUBLISH:

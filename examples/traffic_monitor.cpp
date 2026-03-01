@@ -73,6 +73,12 @@ private:
         {
             SensorEvent event = SensorEvent::deserialize(payload);
             process_event(event);
+            
+            std::cout<< "[DEBUG:MONITOR] Event data: "
+                     << "SensorID=" << event.sensor_id
+                     << ", Speed=" << event.speed_kmh
+                     << " km/h, Timestamp=" << event.timestamp << std::endl;
+        
         }
         catch (const std::exception &e)
         {

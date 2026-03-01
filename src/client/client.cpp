@@ -88,13 +88,22 @@ namespace highway
     void Client::read_header()
     {
         auto self = shared_from_this();
+        
+        // Use shared_ptr to keep the buffer alive during async operation
+        auto header_bytes = std::make_shared<std::array<uint8_t, 4>>();
+        
         boost::asio::async_read(socket_,
-                                boost::asio::buffer(&header_, sizeof(PacketHeader)),
-                                [this, self](boost::system::error_code ec, std::size_t)
+                                boost::asio::buffer(*header_bytes, 4),
+                                [this, self, header_bytes](boost::system::error_code ec, std::size_t)
                                 {
                                     if (!ec)
                                     {
-                                        if (header_.remaining_len > 0)
+                                        // Manually parse the header bytes
+                                        header_.type = (*header_bytes)[0];
+                                        header_.flags = (*header_bytes)[1];
+                                        // Convert from network byte order (big-endian) to host byte order
+                                        header_.remaining_len = ((*header_bytes)[2] << 8) | (*header_bytes)[3];
+                                                                               if (header_.remaining_len > 0)
                                         {
                                             read_payload(header_.remaining_len);
                                         }
@@ -121,7 +130,7 @@ namespace highway
         payload_buffer_.resize(length);
         auto self = shared_from_this();
         boost::asio::async_read(socket_,
-                                boost::asio::buffer(payload_buffer_),
+                                boost::asio::buffer(payload_buffer_.data(), length),
                                 [this, self](boost::system::error_code ec, std::size_t)
                                 {
                                     if (!ec)

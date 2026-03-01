@@ -34,15 +34,17 @@ public:
 
     void start()
     {
+        std::cout << "[SENSOR " << sensor_id_ << "] Connecting to broker..." << std::endl;
         client_->connect([this](bool success)
-                         {
+        {
             if (success) {
                 std::cout << "[SENSOR " << sensor_id_ << "] Connected to broker" << std::endl;
                 start_publishing();
             } else {
                 std::cerr << "[SENSOR " << sensor_id_ << "] Failed to connect" << std::endl;
             } });
-
+            
+        std::cout << "[SENSOR " << sensor_id_ << "] End Connecting to broker" << std::endl;
         client_->run_async();
     }
 
@@ -76,9 +78,7 @@ private:
                 );
                 
                 client_->publish(event.topic(), event.serialize());
-                std::cout << "[SENSOR] :" << sensor_id_
-                          << "\t [CAR] :" << car_dist(rng_)
-                          << "\t [SPEED] :" << std::max(0.0f, speed_dist(rng_)) << std::endl;
+                // std::cout << "[DEBUG:SENSOR] :" << sensor_id_ << "\t [CAR] :" << car_dist(rng_) << "\t [SPEED] :" << std::max(0.0f, speed_dist(rng_)) << std::endl;
                 // Simulate sensor rate (100 events/sec)
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             } });

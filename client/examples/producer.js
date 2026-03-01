@@ -9,6 +9,7 @@
 const { HighwayClient, QoS } = require('../highway-client.js');
 
 
+const isDebug = true;
 const client = new HighwayClient({
   host: 'localhost',
   port: 1883,
@@ -42,15 +43,12 @@ client.on('connect', () => {
       speed,
       vehicles: Math.floor(Math.random() * 50),
       temperature: 20 + Math.random() * 10,
-      here: "name of me ",
-      here1: "name of me ",
-      here2: "name of me ",
-      here3: "name of me ",
-      here4: "name of me ",
-      here5: "name of me ",
-      here6: "name of me ",
-      here7: "name of me ",
-      here8: "name of me ",
+      cordinate: {
+        x: Math.floor(Math.random()* 1000),
+        y: Math.floor(Math.random()* 1000),
+        z: Math.floor(Math.random()* 50),
+      },
+      roadId: sensorId,
     });
 
     client.publish(topic, message, QoS.AT_LEAST_ONCE, (success) => {
@@ -68,10 +66,11 @@ client.on('connect', () => {
   // Continue publishing every 2 seconds
   const interval = setInterval(() => {
     publishMessage();
-  }, 200);
+  }, 10);
 
   // Stop after 60 seconds
-  setTimeout(() => {
+
+  !isDebug && setTimeout(() => {
     console.log(`\n\n[PRODUCER] Published ${messageCount} messages`);
     clearInterval(interval);
     client.disconnect();
