@@ -160,6 +160,8 @@ class HighwayClient:
         self.message_handlers = []
         self.error_handlers = []
         self.event_handlers = defaultdict(list)
+        self.pending_pubacks = {}  # packet_id -> callback for QoS > 0
+        self.pending_subacks = {}  # packet_id -> callback for SUBACK
 
         # Partial packet buffer for incomplete reads
         self.partial_buffer = b''
@@ -309,7 +311,7 @@ class HighwayClient:
             self.state = State.AUTHENTICATED
             self._emit('connect')
             if self.connect_callback:
-                self.connect_callback(True)
+                self.connect_callback(True, None)
         else:
             err = Exception(f'Connection rejected: code {result}')
             self._emit_error(err)
@@ -358,6 +360,12 @@ class HighwayClient:
                 granted_qos_list.append(reader.read_u8())
 
             print(f'[CLIENT] SUBACK: packetId={packet_id}, grants={granted_qos_list}')
+            
+            # Call the callback for this packet ID
+            if packet_id in self.pending_subacks:
+                callback = self.pending_subacks.pop(packet_id)
+                callback({'packet_id': packet_id, 'granted_qos_list': granted_qos_list})
+            
             self._emit('suback', {'packet_id': packet_id, 'granted_qos_list': granted_qos_list})
         except Exception as err:
             self._emit_error(Exception(f'Failed to parse SUBACK: {err}'))
@@ -368,6 +376,12 @@ class HighwayClient:
             reader = BinaryReader(payload)
             packet_id = reader.read_u16()
             print(f'[CLIENT] PUBACK: packetId={packet_id}')
+            
+            # Call the callback for this packet ID
+            if packet_id in self.pending_pubacks:
+                callback = self.pending_pubacks.pop(packet_id)
+                callback(True)
+            
             self._emit('puback', {'packet_id': packet_id})
         except Exception as err:
             self._emit_error(Exception(f'Failed to parse PUBACK: {err}'))
@@ -477,7 +491,8 @@ class HighwayClient:
             if qos == QoS.AT_MOST_ONCE:
                 callback(True)
             else:
-                self._once('puback', lambda result: callback(True))
+                # Track the callback by packet ID
+                self.pending_pubacks[packet_id] = callback
 
     def _send_puback(self, packet_id: int) -> None:
         """Send PUBACK"""

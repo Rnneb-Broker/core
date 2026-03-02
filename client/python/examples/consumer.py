@@ -21,7 +21,7 @@ client = HighwayClient({
     'host': 'localhost',
     'port': 1883,
     'client_id': f'py-consumer-{int(time.time() * 1000) % 1000000}',
-    'auto_connect': True
+    'auto_connect': False
 })
 
 def on_connect():
@@ -60,7 +60,7 @@ def signal_handler(sig, frame):
     print('[CONSUMER] Disconnected')
     sys.exit(0)
 
-# Register event handlers
+# Register event handlers BEFORE connecting
 client.on('connect', on_connect)
 client.on('message', on_message)
 client.on('error', on_error)
@@ -68,6 +68,9 @@ client.on('close', on_close)
 
 # Register signal handler for graceful shutdown
 signal.signal(signal.SIGINT, signal_handler)
+
+# NOW connect after handlers are registered
+client.connect()
 
 print('🚀 Consumer started, waiting for messages...')
 print('   Press Ctrl+C to exit\n')

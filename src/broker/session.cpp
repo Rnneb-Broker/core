@@ -61,18 +61,15 @@ void Session::read_header() {
 }
 
 void Session::read_payload(uint16_t length) {
-  // std::cout << "[DEBUG:READ_PLD] Reading " << length << " bytes payload..." << std::endl;
   payload_buffer_.resize(length);
   auto self = shared_from_this();
   boost::asio::async_read(
       socket_, boost::asio::buffer(payload_buffer_),
       [this, self, length](boost::system::error_code ec, std::size_t bytes_read) {
         if (!ec) {
-          // std::cout << "[DEBUG:READ_PLD] Received " << bytes_read << " bytes" << std::endl;
           process_packet();
           read_header();
         } else if (ec != boost::asio::error::operation_aborted) {
-          // std::cout << "[DEBUG:READ_PLD] ERROR: " << ec.message() << std::endl;
           close();
         }
       });
@@ -80,32 +77,35 @@ void Session::read_payload(uint16_t length) {
 
 void Session::process_packet() {
   PacketType type = static_cast<PacketType>(header_.type);
-  // std::cout << "[DEBUG:PROCESS] packet type=0x" << std::hex << (int)header_.type << std::dec << std::endl;
 
-  switch (type) {
-  case PacketType::CONNECT:
-    std::cout << "[DEBUG:PROCESS] CONNECT packet detected" << std::endl;
-    handle_connect();
-    break;
-  case PacketType::PUBLISH:
-    handle_publish();
-    break;
-  case PacketType::SUBSCRIBE:
-    handle_subscribe();
-    break;
-  case PacketType::UNSUBSCRIBE:
-    handle_unsubscribe();
-    break;
-  case PacketType::PINGREQ:
-    handle_pingreq();
-    break;
-  case PacketType::DISCONNECT:
-    handle_disconnect();
-    break;
-  default:
-    std::cerr << "[SESSION] Unknown packet type: "
-              << static_cast<int>(header_.type) << std::endl;
-    break;
+  try {
+    switch (type) {
+    case PacketType::CONNECT:
+      std::cout << "[DEBUG:PROCESS] CONNECT packet detected" << std::endl;
+      handle_connect();
+      break;
+    case PacketType::PUBLISH:
+      handle_publish();
+      break;
+    case PacketType::SUBSCRIBE:
+      handle_subscribe();
+      break;
+    case PacketType::UNSUBSCRIBE:
+      handle_unsubscribe();
+      break;
+    case PacketType::PINGREQ:
+      handle_pingreq();
+      break;
+    case PacketType::DISCONNECT:
+      handle_disconnect();
+      break;
+    default:
+      std::cerr << "[SESSION] Unknown packet type: "
+                << static_cast<int>(header_.type) << std::endl;
+      break;
+    }
+  } catch (const std::exception &e) {
+    std::cerr << "[ERROR] process_packet exception: " << e.what() << std::endl;
   }
 
   messages_received_.fetch_add(1, std::memory_order_relaxed);
@@ -145,7 +145,8 @@ void Session::handle_publish() {
     auto payload = PublishPayload::deserialize(payload_buffer_.data(),
                                                payload_buffer_.size());
 
-    QoS qos = static_cast<QoS>(header_.flags & 0x06);
+    // Extract QoS from bits 1-2 of flags
+    QoS qos = static_cast<QoS>((header_.flags & 0x06) >> 1);
 
     broker_.on_publish(payload.topic, payload.data, qos, this);
 
@@ -218,21 +219,16 @@ void Session::handle_disconnect() {
 void Session::send(const Packet &packet) { send_raw(packet.serialize()); }
 
 void Session::send_raw(std::vector<uint8_t> data) {
-  // std::cout << "[DEBUG:SEND_RAW] Sending " << data.size() << " bytes" << std::endl;
   bool start_write = false;
   {
     std::lock_guard<std::mutex> lock(write_mutex_);
     write_queue_.push_back(std::move(data));
-    // std::cout << "[DEBUG:SEND_RAW] Queued. Queue size: " << write_queue_.size() << std::endl;
     start_write = !writing_.exchange(true);
   }
 
   if (start_write) {
-    // std::cout << "[DEBUG:SEND_RAW] Posting async write" << std::endl;
     auto self = shared_from_this();
     boost::asio::post(socket_.get_executor(), [this, self]() { do_write(); });
-  } else {
-    // std::cout << "[DEBUG:SEND_RAW] Write already in progress" << std::endl;
   }
 }
 
@@ -242,21 +238,17 @@ void Session::do_write() {
   {
     std::lock_guard<std::mutex> lock(write_mutex_);
     if (write_queue_.empty()) {
-      // std::cout << "[DEBUG:WRITE] Queue empty, stopping" << std::endl;
       writing_ = false;
       return;
     }
     data = write_queue_.front();
   }
 
-  // std::cout << "[DEBUG:WRITE] Writing " << data.size() << " bytes..." << std::endl;
-  
   auto self = shared_from_this();
   boost::asio::async_write(
       socket_, boost::asio::buffer(data),
       [this, self, data](boost::system::error_code ec, std::size_t bytes_written) {
         if (!ec) {
-          // std::cout << "[DEBUG:WRITE] ✅ Wrote " << bytes_written << " bytes" << std::endl;
           messages_sent_.fetch_add(1, std::memory_order_relaxed);
 
           {
@@ -267,7 +259,6 @@ void Session::do_write() {
           // Continue writing if there's more
           do_write();
         } else if (ec != boost::asio::error::operation_aborted) {
-          // std::cout << "[DEBUG:WRITE] ❌ ERROR: " << ec.message() << std::endl;
           writing_ = false;
           close();
         }

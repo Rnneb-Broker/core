@@ -51,6 +51,11 @@ void Broker::stop() {
   if (!running_.exchange(false)) {
     return; // Not running
   }
+  
+  if(!sessions_.empty()) {
+    std::cout << "[BROKER] Broker can't stop, there is "<< sessions_.size() << " active sessions, try later." << std::endl;
+    return;
+  }
 
   std::cout << "[BROKER] Shutting down..." << std::endl;
 
