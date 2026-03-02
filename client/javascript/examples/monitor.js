@@ -63,7 +63,7 @@ function printStats() {
 }
 
 client.on('connect', () => {
-  console.log('\n✅ Connected to broker!\n');
+  console.log('\n[+] Connected to broker!\n');
 
   // Subscribe to telemetry with wildcard
   client.subscribe('highway/+/telemetry', QoS.AT_LEAST_ONCE, () => {
@@ -106,11 +106,11 @@ client.on('message', (msg) => {
 });
 
 client.on('error', (err) => {
-  console.error(`❌ Error: ${err.message}`);
+  console.error(`[-] Error: ${err.message}`);
 });
 
 client.on('close', () => {
-  console.log('\n❌ Disconnected from broker');
+  console.log('\n[-] Disconnected from broker');
   printStats();
   process.exit(0);
 });

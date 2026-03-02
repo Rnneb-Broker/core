@@ -297,7 +297,7 @@ lsof -i :1883                 # Process on port
 
 ---
 
-## ✅ Checklist: First 5 Minutes
+## [+] Checklist: First 5 Minutes
 
 - [ ] Build broker: `cd build && make -j$(nproc)`
 - [ ] Start broker: `./broker`

@@ -100,7 +100,7 @@ cd /path/to/kafka-system/build
 ```bash
 cd /path/to/kafka-system/client
 node examples/consumer.js
-# Output: ✅ Connected to Highway Broker
+# Output: [+] Connected to Highway Broker
 #         Waiting for messages...
 ```
 

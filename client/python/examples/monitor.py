@@ -21,7 +21,7 @@ client = HighwayClient({
     'host': 'localhost',
     'port': 1883,
     'client_id': f'py-monitor-{int(time.time() * 1000) % 1000000}',
-    'auto_connect': True
+    'auto_connect': False
 })
 
 stats = {
@@ -29,14 +29,14 @@ stats = {
     'bytes_received': 0,
     'avg_speed': 0,
     'max_speed': 0,
-    'min_speed': 100,
+    'min_speed': 0,
     'alert_count': 0,
     'sensors': {}
 }
 
 def on_connect():
     """Handle connection establishment"""
-    print('\n✅ Connected to broker!\n')
+    print('\n[+] Connected to broker!\n')
     
     # Subscribe to sensor telemetry
     client.subscribe('highway/+/telemetry', QoS.AT_LEAST_ONCE, lambda result: None)
@@ -83,11 +83,11 @@ def on_message(msg):
 
 def on_error(err):
     """Handle errors"""
-    print(f'❌ Error: {err}')
+    print(f'[-] Error: {err}')
 
 def on_close():
     """Handle disconnect"""
-    print('❌ Disconnected from broker')
+    print('[-] Disconnected from broker')
     sys.exit(0)
 
 def signal_handler(sig, frame):
@@ -123,6 +123,9 @@ client.on('connect', on_connect)
 client.on('message', on_message)
 client.on('error', on_error)
 client.on('close', on_close)
+
+
+client.connect();
 
 # Register signal handler for graceful shutdown
 signal.signal(signal.SIGINT, signal_handler)

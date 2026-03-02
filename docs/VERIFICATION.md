@@ -1,6 +1,6 @@
 # System Verification Checklist
 
-## ✅ Pre-Flight Checks (Before Running)
+## [+] Pre-Flight Checks (Before Running)
 
 ### Environment
 - [ ] Linux OS (tested on Ubuntu 22.04)
@@ -126,7 +126,7 @@ node examples/producer.js
 **Expected Output:**
 ```
 Connecting to localhost:1883...
-✅ Connected to Highway Broker
+[+] Connected to Highway Broker
 Publishing sensor telemetry...
 [Sensor 1001] Published: {"timestamp":"...","speed":45,...}
 [Sensor 1002] Published: {"timestamp":"...","speed":62,...}
@@ -154,7 +154,7 @@ node examples/consumer.js
 **Expected Output:**
 ```
 Connecting to localhost:1883...
-✅ Connected to Highway Broker
+[+] Connected to Highway Broker
 Subscribed to: highway/+/telemetry, highway/+/alerts
 Waiting for messages... (Ctrl+C to exit)
 
@@ -432,7 +432,7 @@ grep -l "TODO\|FIXME\|XXX" *.md client/*.md 2>/dev/null || echo "No TODOs"
 
 ---
 
-## ✅ Final Verification
+## [+] Final Verification
 
 ### System Readiness
 - [ ] Build compiles without warnings
@@ -448,7 +448,7 @@ grep -l "TODO\|FIXME\|XXX" *.md client/*.md 2>/dev/null || echo "No TODOs"
 
 ### Sign-Off
 **All tests passed?**
-- [ ] YES → System is production-ready ✅
+- [ ] YES → System is production-ready [+]
 - [ ] NO → Review failed checklist items
 
 ---
@@ -486,14 +486,14 @@ For production deployment, also verify:
 
 ## 🎉 Success!
 
-If all checkboxes are ✅, you have successfully:
+If all checkboxes are [+], you have successfully:
 
-✅ Built the entire system
-✅ Verified all components work
-✅ Tested pub/sub functionality
-✅ Confirmed persistence
-✅ Validated documentation
-✅ Ready for production
+[+] Built the entire system
+[+] Verified all components work
+[+] Tested pub/sub functionality
+[+] Confirmed persistence
+[+] Validated documentation
+[+] Ready for production
 
 **Next step:** Read [INTEGRATION.md](INTEGRATION.md) for production deployment.
 
@@ -502,15 +502,15 @@ If all checkboxes are ✅, you have successfully:
 ## 📋 Quick Summary
 
 ```
-Build:      ✅ Compiles cleanly
-Broker:     ✅ Listens on 1883
-Producer:   ✅ Publishes messages
-Consumer:   ✅ Receives messages
-Storage:    ✅ Persists data
-Recovery:   ✅ Restarts cleanly
-Docs:       ✅ Complete & accurate
-Performance:✅ No bottlenecks
-Ready:      ✅ PRODUCTION-READY
+Build:      [+] Compiles cleanly
+Broker:     [+] Listens on 1883
+Producer:   [+] Publishes messages
+Consumer:   [+] Receives messages
+Storage:    [+] Persists data
+Recovery:   [+] Restarts cleanly
+Docs:       [+] Complete & accurate
+Performance:[+] No bottlenecks
+Ready:      [+] PRODUCTION-READY
 ```
 
 ---

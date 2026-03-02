@@ -48,7 +48,7 @@ cd /path/to/kafka-system/build
 cd /path/to/kafka-system/client
 node examples/consumer.js
 # Should show: Connecting to localhost:1883
-#             ✅ Connected to Highway Broker
+#             [+] Connected to Highway Broker
 #             Subscribed to: highway/+/telemetry, highway/+/alerts
 #             Waiting for messages... (Ctrl+C to exit)
 ```
@@ -81,10 +81,10 @@ node examples/producer.js
 ```
 
 **Success Criteria:**
-- ✅ Producer publishes messages
-- ✅ Consumer receives them with correct topic/data
-- ✅ Wildcard subscription works (`highway/+/telemetry`)
-- ✅ No connection errors
+- [+] Producer publishes messages
+- [+] Consumer receives them with correct topic/data
+- [+] Wildcard subscription works (`highway/+/telemetry`)
+- [+] No connection errors
 
 ---
 
@@ -116,9 +116,9 @@ node examples/producer.js
 **Expected:** Both consumers receive the same messages.
 
 **Success Criteria:**
-- ✅ Both consumers show identical messages
-- ✅ No duplicate sends from broker
-- ✅ Multiple subscriptions work independently
+- [+] Both consumers show identical messages
+- [+] No duplicate sends from broker
+- [+] Multiple subscriptions work independently
 
 ---
 
@@ -173,10 +173,10 @@ node examples/producer.js
 ```
 
 **Success Criteria:**
-- ✅ Monitor subscribes successfully
-- ✅ Statistics update every 10 seconds
-- ✅ Min/max/average calculated correctly
-- ✅ Alerts displayed when speed < 10 km/h
+- [+] Monitor subscribes successfully
+- [+] Statistics update every 10 seconds
+- [+] Min/max/average calculated correctly
+- [+] Alerts displayed when speed < 10 km/h
 
 ---
 
@@ -231,9 +231,9 @@ node examples/consumer.js
 ```
 
 **Success Criteria:**
-- ✅ Storage files created in `storage/highway/*/`
-- ✅ Files contain binary message data
-- ✅ Broker restarts don't lose sent messages
+- [+] Storage files created in `storage/highway/*/`
+- [+] Files contain binary message data
+- [+] Broker restarts don't lose sent messages
 
 ---
 
@@ -270,7 +270,7 @@ client.on('connect', () => {
     published++;
   }
   
-  console.log(`✅ Published ${published} messages`);
+  console.log(`[+] Published ${published} messages`);
 });
 
 client.on('error', (err) => {

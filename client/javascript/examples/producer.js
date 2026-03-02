@@ -78,11 +78,11 @@ client.on('connect', () => {
 });
 
 client.on('error', (err) => {
-  console.error(`❌ Error: ${err.message}`);
+  console.error(`[-] Error: ${err.message}`);
 });
 
 client.on('close', () => {
-  console.log('❌ Disconnected from broker');
+  console.log('[-] Disconnected from broker');
   process.exit(0);
 });
 

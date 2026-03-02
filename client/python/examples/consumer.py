@@ -26,7 +26,7 @@ client = HighwayClient({
 
 def on_connect():
     """Handle connection establishment"""
-    print('\n✅ Connected to broker!\n')
+    print('\n[+] Connected to broker!\n')
     
     # Subscribe to sensor telemetry
     client.subscribe('highway/+/telemetry', QoS.AT_LEAST_ONCE, lambda result: None)
@@ -45,11 +45,11 @@ def on_message(msg):
 
 def on_error(err):
     """Handle errors"""
-    print(f'❌ Error: {err}')
+    print(f'[-] Error: {err}')
 
 def on_close():
     """Handle disconnect"""
-    print('❌ Disconnected from broker')
+    print('[-] Disconnected from broker')
     sys.exit(0)
 
 def signal_handler(sig, frame):

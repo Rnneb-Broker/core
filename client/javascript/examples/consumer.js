@@ -17,7 +17,7 @@ const client = new HighwayClient({
 
 // Handle connection
 client.on('connect', () => {
-  console.log('\n✅ Connected to broker!\n');
+  console.log('\n[+] Connected to broker!\n');
 
   // Subscribe to sensor telemetry
   client.subscribe('highway/+/telemetry', QoS.AT_LEAST_ONCE, (result) => {
@@ -40,12 +40,12 @@ client.on('message', (msg) => {
 
 // Handle errors
 client.on('error', (err) => {
-  console.error(`❌ Error: ${err.message}`);
+  console.error(`[-] Error: ${err.message}`);
 });
 
 // Handle disconnect
 client.on('close', () => {
-  console.log('❌ Disconnected from broker');
+  console.log('[-] Disconnected from broker');
   process.exit(0);
 });
 

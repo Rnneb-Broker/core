@@ -76,11 +76,11 @@ for i in range(5):
 # Verify
 print("\n" + "=" * 60)
 if publish_confirmed and messages_received:
-    print("✅ SUCCESS: Producer published and consumer received!")
+    print("[+] SUCCESS: Producer published and consumer received!")
     print(f"   - Publish confirmed: {publish_confirmed}")
     print(f"   - Messages received: {len(messages_received)}")
 else:
-    print("❌ FAILURE:")
+    print("[-] FAILURE:")
     print(f"   - Publish confirmed: {publish_confirmed}")
     print(f"   - Messages received: {len(messages_received)}")
 print("=" * 60)

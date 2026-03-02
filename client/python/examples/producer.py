@@ -33,7 +33,7 @@ message_count = 0
 
 def on_connect():
     """Handle connection establishment"""
-    print('\n✅ Connected to broker!\n')
+    print('\n[+] Connected to broker!\n')
     
     print(f'Init {MAX_SENSORS_COUNT} sensors ids ...')
     sensor_ids = [1000 + i for i in range(MAX_SENSORS_COUNT)]
@@ -94,11 +94,11 @@ def on_connect():
 
 def on_error(err):
     """Handle errors"""
-    print(f'❌ Error: {err}')
+    print(f'[-] Error: {err}')
 
 def on_close():
     """Handle disconnect"""
-    print('❌ Disconnected from broker')
+    print('[-] Disconnected from broker')
     sys.exit(0)
 
 def signal_handler(sig, frame):

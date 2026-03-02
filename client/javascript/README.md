@@ -4,12 +4,12 @@ A lightweight JavaScript client for the Highway message broker, implementing the
 
 ## Features
 
-✅ **Publish/Subscribe messaging** - Full pub/sub support  
-✅ **Quality of Service (QoS)** - Support for QoS 0, 1, 2  
-✅ **Topic wildcards** - Subscribe to multiple topics with patterns  
-✅ **Connection management** - Automatic reconnection and keepalive  
-✅ **Error handling** - Comprehensive error callbacks  
-✅ **Event emitters** - Node.js EventEmitter interface  
+[+] **Publish/Subscribe messaging** - Full pub/sub support  
+[+] **Quality of Service (QoS)** - Support for QoS 0, 1, 2  
+[+] **Topic wildcards** - Subscribe to multiple topics with patterns  
+[+] **Connection management** - Automatic reconnection and keepalive  
+[+] **Error handling** - Comprehensive error callbacks  
+[+] **Event emitters** - Node.js EventEmitter interface  
 
 ## Installation
 
