@@ -7,12 +7,18 @@
     "test": "node examples/consumer.js",
     "producer": "node examples/producer.js",
     "consumer": "node examples/consumer.js",
-    "monitor": "node examples/monitor.js"
+    "monitor": "node examples/monitor.js",
+    "bridge": "node ws-bridge.js",
+    "web": "python3 -m http.server 8000"
   },
-  "keywords": ["broker", "messaging", "mqtt-lite"],
+  "keywords": [
+    "broker",
+    "messaging",
+    "mqtt-lite"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "net": "builtin"
+    "ws": "^8.19.0"
   }
 }

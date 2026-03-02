@@ -9,7 +9,8 @@ A lightweight JavaScript client for the Highway message broker, implementing the
 [+] **Topic wildcards** - Subscribe to multiple topics with patterns  
 [+] **Connection management** - Automatic reconnection and keepalive  
 [+] **Error handling** - Comprehensive error callbacks  
-[+] **Event emitters** - Node.js EventEmitter interface  
+[+] **Event emitters** - Node.js EventEmitter interface
+[+] **Web Consumer** - Browser-based consumer with real-time UI
 
 ## Installation
 
@@ -19,6 +20,29 @@ No external dependencies required! Uses only Node.js built-in `net` module.
 cd /path/to/kafka-system/client
 npm install
 ```
+
+## 🌐 Web Consumer (NEW!)
+
+A ready-to-use web interface for consuming messages! Perfect for testing and monitoring.
+
+**Quick Start:**
+
+```bash
+# Terminal 1: Start the broker
+./build/broker
+
+# Terminal 2: Start the WebSocket bridge
+cd client/javascript
+npm install ws
+npm run bridge
+
+# Terminal 3: Start web server
+npm run web
+```
+
+Then open: **http://localhost:8000/consumer.html**
+
+See [WEB_CONSUMER_README.md](WEB_CONSUMER_README.md) for full documentation.
 
 ## Quick Start
 

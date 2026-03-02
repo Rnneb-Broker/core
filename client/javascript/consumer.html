@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Highway Broker - Web Consumer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.danger {
+            background: #e74c3c;
+        }
+
+        button.danger:hover {
+            background: #c0392b;
+        }
+
+        button.success {
+            background: #27ae60;
+        }
+
+        button.success:hover {
+            background: #229954;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .status.connecting {
+            background: #f39c12;
+            color: white;
+        }
+
+        .status.connected {
+            background: #27ae60;
+            color: white;
+        }
+
+        .messages-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .message-topic {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .message-time {
+            color: #999;
+        }
+
+        .message-content {
+            color: #333;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 3px;
+            word-wrap: break-word;
+        }
+
+        .subscription-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .subscription-tag {
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .subscription-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0 5px;
+        }
+
+        .subscription-tag .remove:hover {
+            color: #e74c3c;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Highway Broker - Web Consumer</h1>
+
+        <!-- Connection Card -->
+        <div class="card">
+            <h2>Connection Settings</h2>
+            <div class="form-group">
+                <label for="wsUrl">WebSocket URL:</label>
+                <input type="text" id="wsUrl" value="ws://localhost:8080" placeholder="ws://localhost:8080">
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="clientId">Client ID:</label>
+                    <input type="text" id="clientId" value="">
+                </div>
+                <div class="form-group">
+                    <label for="keepalive">Keep Alive (seconds):</label>
+                    <input type="number" id="keepalive" value="60">
+                </div>
+            </div>
+            <div>
+                <button id="connectBtn" class="success">Connect</button>
+                <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+                <span class="status disconnected" id="statusBadge">Disconnected</span>
+            </div>
+        </div>
+
+        <!-- Subscription Card -->
+        <div class="card">
+            <h2>Subscribe to Topics</h2>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="topic">Topic:</label>
+                    <input type="text" id="topic" placeholder="highway/+/telemetry" value="highway/+/telemetry">
+                </div>
+                <div class="form-group">
+                    <label for="qos">QoS Level:</label>
+                    <select id="qos">
+                        <option value="0">0 - At Most Once</option>
+                        <option value="1" selected>1 - At Least Once</option>
+                        <option value="2">2 - Exactly Once</option>
+                    </select>
+                </div>
+            </div>
+            <button id="subscribeBtn" disabled>Subscribe</button>
+            
+            <div>
+                <h3 style="margin-top: 20px; margin-bottom: 10px; color: #667eea;">Active Subscriptions:</h3>
+                <div class="subscription-list" id="subscriptionList">
+                    <div class="empty-state" style="padding: 20px;">No active subscriptions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Card -->
+        <div class="card">
+            <h2>Statistics</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="messageCount">0</div>
+                    <div class="stat-label">Messages Received</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="subscriptionCount">0</div>
+                    <div class="stat-label">Active Subscriptions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="topicCount">0</div>
+                    <div class="stat-label">Unique Topics</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Card -->
+        <div class="card">
+            <h2>Received Messages</h2>
+            <button id="clearBtn" style="float: right; margin-top: -50px;">Clear Messages</button>
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-state">Waiting for messages...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the browser client -->
+    <script src="highway-client-browser.js"></script>
+    
+    <script>
+        // Application state
+        let client = null;
+        let messageCount = 0;
+        let topicsSet = new Set();
+
+        // DOM elements
+        const wsUrlInput = document.getElementById('wsUrl');
+        const clientIdInput = document.getElementById('clientId');
+        const keepaliveInput = document.getElementById('keepalive');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const statusBadge = document.getElementById('statusBadge');
+        const topicInput = document.getElementById('topic');
+        const qosSelect = document.getElementById('qos');
+        const subscribeBtn = document.getElementById('subscribeBtn');
+        const subscriptionList = document.getElementById('subscriptionList');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const clearBtn = document.getElementById('clearBtn');
+        const messageCountEl = document.getElementById('messageCount');
+        const subscriptionCountEl = document.getElementById('subscriptionCount');
+        const topicCountEl = document.getElementById('topicCount');
+
+        // Generate random client ID
+        clientIdInput.value = `browser-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Connect button handler
+        connectBtn.addEventListener('click', () => {
+            const url = wsUrlInput.value.trim();
+            const clientId = clientIdInput.value.trim();
+            const keepalive = parseInt(keepaliveInput.value);
+
+            if (!url || !clientId) {
+                alert('Please fill in all connection fields');
+                return;
+            }
+
+            updateStatus('connecting');
+            connectBtn.disabled = true;
+
+            client = new HighwayBrowserClient({
+                url: url,
+                clientId: clientId,
+                keepalive: keepalive,
+                autoConnect: false
+            });
+
+            client.on('connect', () => {
+                updateStatus('connected');
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                subscribeBtn.disabled = false;
+                addLogMessage('Connected successfully!', 'success');
+            });
+
+            client.on('message', (msg) => {
+                handleMessage(msg);
+            });
+
+            client.on('error', (err) => {
+                console.error('Client error:', err);
+                addLogMessage(`Error: ${err.message}`, 'error');
+            });
+
+            client.on('close', () => {
+                updateStatus('disconnected');
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                subscribeBtn.disabled = true;
+                addLogMessage('Disconnected from broker', 'info');
+            });
+
+            client.connect((success, err) => {
+                if (!success) {
+                    updateStatus('disconnected');
+                    connectBtn.disabled = false;
+                    alert(`Connection failed: ${err.message}`);
+                }
+            });
+        });
+
+        // Disconnect button handler
+        disconnectBtn.addEventListener('click', () => {
+            if (client) {
+                client.disconnect(() => {
+                    client = null;
+                });
+            }
+        });
+
+        // Subscribe button handler
+        subscribeBtn.addEventListener('click', () => {
+            const topic = topicInput.value.trim();
+            const qos = parseInt(qosSelect.value);
+
+            if (!topic) {
+                alert('Please enter a topic');
+                return;
+            }
+
+            if (client && client.isConnected()) {
+                client.subscribe(topic, qos, (success) => {
+                    if (success) {
+                        addSubscriptionTag(topic);
+                        addLogMessage(`Subscribed to: ${topic}`, 'success');
+                        updateStats();
+                    }
+                });
+            }
+        });
+
+        // Clear messages button
+        clearBtn.addEventListener('click', () => {
+            messagesContainer.innerHTML = '<div class="empty-state">Waiting for messages...</div>';
+            messageCount = 0;
+            topicsSet.clear();
+            updateStats();
+        });
+
+        // Update connection status
+        function updateStatus(status) {
+            statusBadge.className = `status ${status}`;
+            statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        // Handle incoming message
+        function handleMessage(msg) {
+            messageCount++;
+            topicsSet.add(msg.topic);
+
+            // Remove empty state if present
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            // Decode message data
+            const decoder = new TextDecoder();
+            let content = decoder.decode(msg.data);
+
+            // Try to parse as JSON for pretty printing
+            try {
+                const json = JSON.parse(content);
+                content = JSON.stringify(json, null, 2);
+            } catch (e) {
+                // Not JSON, use as is
+            }
+
+            // Create message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-topic">${escapeHtml(msg.topic)}</span>
+                    <span class="message-time">${new Date().toLocaleTimeString()}</span>
+                </div>
+                <div class="message-content">${escapeHtml(content)}</div>
+            `;
+
+            // Add to top of message list
+            messagesContainer.insertBefore(messageDiv, messagesContainer.firstChild);
+
+            // Limit to 50 messages
+            while (messagesContainer.children.length > 50) {
+                messagesContainer.lastChild.remove();
+            }
+
+            updateStats();
+        }
+
+        // Add log message (for connection events)
+        function addLogMessage(text, type) {
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.style.borderLeftColor = type === 'error' ? '#e74c3c' : 
+                                              type === 'success' ? '#27ae60' : '#667eea';
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-topic">System</span>
+                    <span class="message-time">${new Date().toLocaleTimeString()}</span>
+                </div>
+                <div class="message-content">${escapeHtml(text)}</div>
+            `;
+
+            messagesContainer.insertBefore(messageDiv, messagesContainer.firstChild);
+        }
+
+        // Add subscription tag
+        function addSubscriptionTag(topic) {
+            const emptyState = subscriptionList.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            // Check if already exists
+            if (subscriptionList.querySelector(`[data-topic="${topic}"]`)) {
+                return;
+            }
+
+            const tag = document.createElement('div');
+            tag.className = 'subscription-tag';
+            tag.setAttribute('data-topic', topic);
+            tag.innerHTML = `
+                ${escapeHtml(topic)}
+                <span class="remove" onclick="unsubscribe('${escapeHtml(topic)}')">✕</span>
+            `;
+            subscriptionList.appendChild(tag);
+            updateStats();
+        }
+
+        // Unsubscribe from topic
+        window.unsubscribe = function(topic) {
+            if (client && client.isConnected()) {
+                // Remove tag
+                const tag = subscriptionList.querySelector(`[data-topic="${topic}"]`);
+                if (tag) {
+                    tag.remove();
+                }
+
+                // Show empty state if no subscriptions
+                if (subscriptionList.children.length === 0) {
+                    subscriptionList.innerHTML = '<div class="empty-state" style="padding: 20px;">No active subscriptions</div>';
+                }
+
+                addLogMessage(`Unsubscribed from: ${topic}`, 'info');
+                updateStats();
+            }
+        };
+
+        // Update statistics
+        function updateStats() {
+            messageCountEl.textContent = messageCount;
+            subscriptionCountEl.textContent = subscriptionList.querySelectorAll('.subscription-tag').length;
+            topicCountEl.textContent = topicsSet.size;
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Add some helpful shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.activeElement === topicInput) {
+                subscribeBtn.click();
+            }
+        });
+
+        console.log('🚗 Highway Broker Web Consumer loaded!');
+        console.log('Note: Make sure you have a WebSocket proxy/bridge to the broker');
+    </script>
+</body>
+</html>
