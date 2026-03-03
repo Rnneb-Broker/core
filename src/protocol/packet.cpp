@@ -41,6 +41,7 @@ namespace highway
         BinaryWriter writer;
         writer.write_string(topic);
         writer.write_u16(packet_id);
+        writer.write_u64(offset);
         writer.write_bytes(data);
         return writer.release();
     }
@@ -51,6 +52,7 @@ namespace highway
         PublishPayload payload;
         payload.topic = reader.read_string();
         payload.packet_id = reader.read_u16();
+        payload.offset = reader.read_u64();
         payload.data = reader.read_remaining();
         return payload;
     }
@@ -82,6 +84,100 @@ namespace highway
             QoS qos = static_cast<QoS>(reader.read_u8());
             payload.topics.emplace_back(topic, qos);
         }
+        return payload;
+    }
+
+    // ============================================================================
+    // FetchOnePayload
+    // ============================================================================
+
+    std::vector<uint8_t> FetchOnePayload::serialize() const
+    {
+        BinaryWriter writer;
+        writer.write_string(topic);
+        writer.write_u64(offset);
+        return writer.release();
+    }
+
+    FetchOnePayload FetchOnePayload::deserialize(const uint8_t *data, size_t len)
+    {
+        BinaryReader reader(data, len);
+        FetchOnePayload payload;
+        payload.topic = reader.read_string();
+        payload.offset = reader.read_u64();
+        return payload;
+    }
+
+    // ============================================================================
+    // FetchResponsePayload
+    // ============================================================================
+
+    std::vector<uint8_t> FetchResponsePayload::serialize() const
+    {
+        BinaryWriter writer;
+        writer.write_string(topic);
+        writer.write_u64(offset);
+        writer.write_bytes(data);
+        return writer.release();
+    }
+
+    FetchResponsePayload FetchResponsePayload::deserialize(const uint8_t *data, size_t len)
+    {
+        BinaryReader reader(data, len);
+        FetchResponsePayload payload;
+        payload.topic = reader.read_string();
+        payload.offset = reader.read_u64();
+        payload.data = reader.read_remaining();
+        return payload;
+    }
+
+    // ============================================================================
+    // SubscribeFromOffsetPayload
+    // ============================================================================
+
+    std::vector<uint8_t> SubscribeFromOffsetPayload::serialize() const
+    {
+        BinaryWriter writer;
+        writer.write_u16(packet_id);
+        writer.write_string(topic);
+        writer.write_u64(start_offset);
+        writer.write_u8(static_cast<uint8_t>(qos));
+        return writer.release();
+    }
+
+    SubscribeFromOffsetPayload SubscribeFromOffsetPayload::deserialize(const uint8_t *data, size_t len)
+    {
+        BinaryReader reader(data, len);
+        SubscribeFromOffsetPayload payload;
+        payload.packet_id = reader.read_u16();
+        payload.topic = reader.read_string();
+        payload.start_offset = reader.read_u64();
+        payload.qos = static_cast<QoS>(reader.read_u8());
+        return payload;
+    }
+
+    // ============================================================================
+    // OffsetNotFoundPayload
+    // ============================================================================
+
+    std::vector<uint8_t> OffsetNotFoundPayload::serialize() const
+    {
+        BinaryWriter writer;
+        writer.write_string(topic);
+        writer.write_u64(requested_offset);
+        writer.write_u64(oldest_available);
+        writer.write_u64(newest_available);
+        return writer.release();
+    }
+
+    OffsetNotFoundPayload OffsetNotFoundPayload::deserialize(const uint8_t *data, size_t len)
+    {
+        BinaryReader reader(data, len);
+        OffsetNotFoundPayload payload;
+        payload.topic = reader.read_string();
+        payload.requested_offset = reader.read_u64();
+        payload.oldest_available = reader.read_u64();
+        payload.newest_available = reader.read_u64();
         return payload;
     }
 

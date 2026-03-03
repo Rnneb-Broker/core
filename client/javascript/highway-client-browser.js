@@ -15,7 +15,18 @@ const PacketType = {
   UNSUBACK: 0xB0,
   PINGREQ: 0xC0,
   PINGRESP: 0xD0,
-  DISCONNECT: 0xE0
+  DISCONNECT: 0xE0,
+  // Offset-based access (v1.1)
+  FETCH_ONE: 0x50,
+  FETCH_RESPONSE: 0x51,
+  SUBSCRIBE_FROM_OFFSET: 0x81,
+  OFFSET_NOT_FOUND: 0x52
+};
+
+// Subscription modes (v1.1)
+const SubscriptionMode = {
+  PUSH_LIVE: 0,
+  CATCHUP_THEN_PUSH: 1
 };
 
 // Quality of Service
@@ -79,10 +90,10 @@ class BinaryWriter {
 
   write_u64(value) {
     const b = new Uint8Array(8);
-    const bigVal = BigInt(value);
+    let bigVal = BigInt(value);
     for (let i = 7; i >= 0; i--) {
       b[i] = Number(bigVal & 0xFFn);
-      value = bigVal >> 8n;
+      bigVal = bigVal >> 8n;
     }
     this.buffer = this._concat(this.buffer, b);
     return this;
@@ -218,7 +229,9 @@ class HighwayBrowserClient {
       error: [],
       close: [],
       suback: [],
-      puback: []
+      puback: [],
+      fetch_response: [],
+      offset_not_found: []
     };
 
     // Partial packet buffer for incomplete reads
@@ -233,14 +246,24 @@ class HighwayBrowserClient {
    * Event listener registration
    */
   on(event, callback) {
-    if (this.listeners[event]) {
-      this.listeners[event].push(callback);
+    if (!this.listeners[event]) {
+      this.listeners[event] = [];
     }
+    this.listeners[event].push(callback);
   }
 
   emit(event, data) {
     if (this.listeners[event]) {
       this.listeners[event].forEach(callback => callback(data));
+    }
+  }
+
+  removeListener(event, callback) {
+    if (this.listeners[event]) {
+      const idx = this.listeners[event].indexOf(callback);
+      if (idx > -1) {
+        this.listeners[event].splice(idx, 1);
+      }
     }
   }
 
@@ -372,6 +395,12 @@ class HighwayBrowserClient {
       case PacketType.PINGRESP:
         this.handlePingresp();
         break;
+      case PacketType.FETCH_RESPONSE:
+        this.handleFetchResponse(payload);
+        break;
+      case PacketType.OFFSET_NOT_FOUND:
+        this.handleOffsetNotFound(payload);
+        break;
       default:
         console.warn(`[CLIENT] Unknown packet type: 0x${header.type.toString(16)}`);
     }
@@ -406,13 +435,14 @@ class HighwayBrowserClient {
   }
 
   /**
-   * Handle incoming PUBLISH message
+   * Handle incoming PUBLISH message (with offset metadata - v1.1)
    */
   handlePublish(header, payload) {
     try {
       const reader = new BinaryReader(payload);
       const topic = reader.read_string();
       const packetId = reader.read_u16();
+      const offset = reader.read_u64();  // NEW: Offset metadata
       const data = reader.read_remaining();
 
       const qos = (header.flags >> 1) & 0x03;
@@ -422,12 +452,13 @@ class HighwayBrowserClient {
         this.sendPuback(packetId);
       }
 
-      // Emit message event
+      // Emit message event (with offset)
       this.emit('message', {
         topic,
         data,
         qos,
-        packetId
+        packetId,
+        offset  // NEW: Include offset in message event
       });
     } catch (err) {
       this.emit('error', new Error(`Failed to parse PUBLISH: ${err.message}`));
@@ -473,6 +504,53 @@ class HighwayBrowserClient {
    */
   handlePingresp() {
     console.log('[CLIENT] PINGRESP received');
+  }
+
+  /**
+   * Handle FETCH_RESPONSE (v1.1 - offset-based access)
+   */
+  handleFetchResponse(payload) {
+    try {
+      const reader = new BinaryReader(payload);
+      const topic = reader.read_string();
+      const offset = reader.read_u64();
+      const data = reader.read_remaining();
+
+      this.emit('fetch_response', {
+        topic,
+        offset,
+        data
+      });
+
+      console.log(`[CLIENT] Received FETCH_RESPONSE: topic="${topic}", offset=${offset}, size=${data.length}`);
+    } catch (err) {
+      this.emit('error', new Error(`Failed to parse FETCH_RESPONSE: ${err.message}`));
+    }
+  }
+
+  /**
+   * Handle OFFSET_NOT_FOUND (v1.1 - offset-based access)
+   */
+  handleOffsetNotFound(payload) {
+    try {
+      const reader = new BinaryReader(payload);
+      const topic = reader.read_string();
+      const requestedOffset = reader.read_u64();
+      const oldestAvailable = reader.read_u64();
+      const newestAvailable = reader.read_u64();
+
+      this.emit('offset_not_found', {
+        topic,
+        requestedOffset,
+        oldestAvailable,
+        newestAvailable
+      });
+
+      console.log(`[CLIENT] Offset not found: topic="${topic}", requested=${requestedOffset}, ` +
+                  `oldest=${oldestAvailable}, newest=${newestAvailable}`);
+    } catch (err) {
+      this.emit('error', new Error(`Failed to parse OFFSET_NOT_FOUND: ${err.message}`));
+    }
   }
 
   /**
@@ -601,6 +679,104 @@ class HighwayBrowserClient {
     packet.set(payload, header.length);
 
     this.socket.send(packet.buffer);
+  }
+
+  /**
+   * Fetch a single message from a specific offset (v1.1 - stateless)
+   */
+  fetchOne(topic, offset, callback) {
+    if (this.state !== State.AUTHENTICATED) {
+      const err = new Error('Not connected');
+      this.emit('error', err);
+      if (callback) callback(null, err);
+      return;
+    }
+
+    const payload = new BinaryWriter()
+      .write_string(topic)
+      .write_u64(offset)
+      .release();
+
+    const header = createPacketHeader(PacketType.FETCH_ONE, 0, payload.length);
+    const packet = new Uint8Array(header.length + payload.length);
+    packet.set(header, 0);
+    packet.set(payload, header.length);
+
+    this.socket.send(packet.buffer);
+
+    console.log(`[CLIENT] Sent FETCH_ONE: topic="${topic}", offset=${offset}`);
+
+    if (callback) {
+      const handler = (event) => {
+        // Verify it's for this topic
+        if (event.topic === topic && event.offset === offset) {
+          callback(event.data, null, event.offset);
+          // Remove handler
+          this.removeListener('fetch_response', handler);
+        }
+      };
+      
+      const errorHandler = (event) => {
+        if (event.topic === topic && event.requestedOffset === offset) {
+          const err = new Error(`Offset not available for topic "${topic}"`);
+          err.oldest = event.oldestAvailable;
+          err.newest = event.newestAvailable;
+          callback(null, err);
+          // Remove handlers
+          this.removeListener('offset_not_found', errorHandler);
+        }
+      };
+      
+      this.on('fetch_response', handler);
+      this.on('offset_not_found', errorHandler);
+      
+      // Remove after timeout
+      setTimeout(() => {
+        this.removeListener('fetch_response', handler);
+        this.removeListener('offset_not_found', errorHandler);
+      }, 5000);
+    }
+  }
+
+  /**
+   * Subscribe from specific offset with catchup mode (v1.1)
+   */
+  subscribeFromOffset(topic, startOffset, qos = QoS.AT_MOST_ONCE, callback) {
+    if (this.state !== State.AUTHENTICATED) {
+      const err = new Error('Not connected');
+      this.emit('error', err);
+      if (callback) callback(false, err);
+      return;
+    }
+
+    const packetId = this.nextPacketId++;
+    const payload = new BinaryWriter()
+      .write_u16(packetId)
+      .write_string(topic)
+      .write_u64(startOffset)  // start_offset comes BEFORE qos
+      .write_u8(qos)
+      .release();
+
+    const header = createPacketHeader(PacketType.SUBSCRIBE_FROM_OFFSET, 0x02, payload.length);
+    const packet = new Uint8Array(header.length + payload.length);
+    packet.set(header, 0);
+    packet.set(payload, header.length);
+
+    this.socket.send(packet.buffer);
+    this.subscriptions.set(topic, qos);
+
+    console.log(`[CLIENT] Sent SUBSCRIBE_FROM_OFFSET: topic="${topic}", offset=${startOffset}, QoS=${qos}`);
+
+    if (callback) {
+      const handler = () => {
+        callback(true);
+      };
+      this.on('suback', handler);
+      // Remove after first call and timeout
+      setTimeout(() => {
+        this.removeListener('suback', handler);
+      }, 5000);
+    }
   }
 
   /**

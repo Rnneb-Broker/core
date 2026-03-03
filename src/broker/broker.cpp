@@ -159,30 +159,61 @@ void Broker::on_publish(const std::string &topic,
   // Register topic if new
   topic_manager_.register_topic(topic);
 
-  // Write to logs
-  storage_manager_.on_publish(topic,payload);
-
+  // Write to storage and get assigned offset
+  uint64_t offset = storage_manager_.on_publish(topic, payload);
 
   // Find all matching subscribers
   auto subscribers = subscription_manager_.get_subscribers(topic);
 
+  // Deliver to each subscriber with mode-aware logic
+  for (auto &sub : subscribers) {
+    if (sub.session == from) {
+      continue;  // Don't echo back to sender
+    }
 
-  // Deliver to each subscriber
-  for (const auto &sub : subscribers) {
+    bool should_deliver = false;
 
-    if (sub.session != from) { // Don't echo back to sender
-      sub.session->deliver(topic, payload, std::min(qos, sub.qos));
+    if (sub.mode == SubscriptionMode::PUSH_LIVE) {
+      // Default behavior: deliver all new messages
+      should_deliver = true;
+
+    } else if (sub.mode == SubscriptionMode::CATCHUP_THEN_PUSH) {
+      // Catch-up mode: only deliver if offset >= current_offset
+      if (offset >= sub.current_offset) {
+        should_deliver = true;
+
+        // Update current_offset
+        subscription_manager_.update_subscription_offset(
+            sub.session, sub.pattern, offset + 1);
+
+        // Check if we've caught up to head - switch to PUSH_LIVE
+        uint64_t head_offset = storage_manager_.get_head_offset(topic);
+        if (offset >= head_offset) {
+          subscription_manager_.update_subscription_mode(
+              sub.session, sub.pattern, SubscriptionMode::PUSH_LIVE);
+
+          std::cout << "[BROKER] Subscription caught up, switching to PUSH_LIVE: "
+                    << sub.session->client_id() << " topic=" << topic << std::endl;
+        }
+      }
+    }
+
+    if (should_deliver) {
+      sub.session->deliver(topic, payload, std::min(qos, sub.qos), offset);
       total_messages_out_.fetch_add(1, std::memory_order_relaxed);
     }
   }
 }
 
-void Broker::on_subscribe(Session *session, const std::string &topic, QoS qos) {
-  subscription_manager_.subscribe(session, topic, qos);
+void Broker::on_subscribe(Session *session, const std::string &topic, QoS qos,
+                         SubscriptionMode mode, uint64_t start_offset) {
+  subscription_manager_.subscribe(session, topic, qos, mode, start_offset);
   session->add_subscription(topic);
 
   std::cout << "[BROKER] " << session->client_id()
-            << " subscribed to: " << topic << std::endl;
+            << " subscribed to: " << topic
+            << " mode=" << (mode == SubscriptionMode::PUSH_LIVE ? "PUSH_LIVE" : "CATCHUP_THEN_PUSH")
+            << " offset=" << start_offset << std::endl;
 }
 
 void Broker::on_unsubscribe(Session *session, const std::string &topic) {

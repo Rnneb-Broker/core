@@ -60,8 +60,13 @@ namespace highway
 
         /**
          * Publish a message to this client (for subscribers)
+         * @param topic Topic name
+         * @param payload Message payload
+         * @param qos Quality of Service level
+         * @param offset Message offset (included in delivery metadata)
          */
-        void deliver(const std::string &topic, const std::vector<uint8_t> &payload, QoS qos);
+        void deliver(const std::string &topic, const std::vector<uint8_t> &payload, 
+                    QoS qos, uint64_t offset = 0);
 
         // Accessors
         const std::string &client_id() const { return client_id_; }
@@ -87,12 +92,18 @@ namespace highway
         void handle_unsubscribe();
         void handle_pingreq();
         void handle_disconnect();
+        void handle_fetch_one();
+        void handle_subscribe_from_offset();
 
         // Send helpers
         void send_connack(ConnectResult result);
         void send_suback(uint16_t packet_id, const std::vector<QoS> &granted_qos);
         void send_unsuback(uint16_t packet_id);
         void send_pingresp();
+        void send_fetch_response(const std::string &topic, uint64_t offset, 
+                                const std::vector<uint8_t> &data);
+        void send_offset_not_found(const std::string &topic, uint64_t requested_offset,
+                                   uint64_t oldest_available, uint64_t newest_available);
 
         tcp::socket socket_;
         Broker &broker_;

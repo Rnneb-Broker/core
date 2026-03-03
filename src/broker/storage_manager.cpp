@@ -516,6 +516,16 @@ SegmentLog::Stats SegmentLog::get_stats() const {
   return s;
 }
 
+uint64_t SegmentLog::get_oldest_offset() const {
+  std::shared_lock lock(segments_mutex_);
+  if (segments_.empty()) {
+    return 0;  // No segments, return 0
+  }
+  
+  // Segments are ordered by ID (base_offset), so first segment has oldest offset
+  return segments_.begin()->second.base_offset;
+}
+
 void SegmentLog::write_message_to_buffer(Buffer *buf, uint64_t offset,
                                          const std::vector<uint8_t> &payload) {
   // Helper for recovery
@@ -838,11 +848,11 @@ void StorageManager::shutdown() {
   }
 }
 
-void StorageManager::on_publish(const std::string &topic,
+uint64_t StorageManager::on_publish(const std::string &topic,
                                 const std::vector<uint8_t> &payload) {
   auto *log = get_or_create_log(topic);
   if (log) {
-    log->append(payload);
+    uint64_t offset = log->append(payload);
 
     // Always get or create flush worker and signal it
     // This ensures immediate flushing even for small messages
@@ -851,7 +861,10 @@ void StorageManager::on_publish(const std::string &topic,
       // Signal the worker to wake up and check for data
       log->signal_flush();
     }
+    
+    return offset;
   }
+  return 0;  // Failed to get/create log
 }
 
 std::vector<uint8_t> StorageManager::read(const std::string &topic,
@@ -881,6 +894,24 @@ bool StorageManager::has_offset(const std::string &topic,
   // Try to read - if it succeeds, offset exists
   auto payload = log->read_at_offset(offset);
   return !payload.empty();
+}
+
+uint64_t StorageManager::get_head_offset(const std::string &topic) const {
+  std::shared_lock lock(logs_mutex_);
+  auto it = logs_.find(topic);
+  if (it == logs_.end())
+    return 0;  // Topic doesn't exist
+  
+  return it->second->get_head_offset();
+}
+
+uint64_t StorageManager::get_oldest_offset(const std::string &topic) const {
+  std::shared_lock lock(logs_mutex_);
+  auto it = logs_.find(topic);
+  if (it == logs_.end())
+    return 0;  // Topic doesn't exist
+  
+  return it->second->get_oldest_offset();
 }
 
 void StorageManager::on_storage_failure(const std::string &topic,

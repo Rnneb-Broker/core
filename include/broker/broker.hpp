@@ -75,11 +75,14 @@ namespace highway
         void on_session_closed(Session *session);
         void on_publish(const std::string &topic, const std::vector<uint8_t> &payload,
                         QoS qos, Session *from);
-        void on_subscribe(Session *session, const std::string &topic, QoS qos);
+        void on_subscribe(Session *session, const std::string &topic, QoS qos,
+                         SubscriptionMode mode = SubscriptionMode::PUSH_LIVE,
+                         uint64_t start_offset = 0);
         void on_unsubscribe(Session *session, const std::string &topic);
 
         TopicManager &topics() { return topic_manager_; }
         SubscriptionManager &subscriptions() { return subscription_manager_; }
+        StorageManager &storage() { return storage_manager_; }
 
     private:
         void accept_loop();

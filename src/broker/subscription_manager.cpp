@@ -5,21 +5,24 @@
 namespace highway
 {
 
-    void SubscriptionManager::subscribe(Session *session, const std::string &pattern, QoS qos)
+    void SubscriptionManager::subscribe(Session *session, const std::string &pattern, QoS qos,
+                                        SubscriptionMode mode, uint64_t start_offset)
     {
         std::unique_lock lock(mutex_);
 
-        Subscription sub{session, pattern, qos};
+        Subscription sub{session, pattern, qos, mode, start_offset};
 
         // Add to pattern -> subscriptions map
         auto &subs = subscriptions_by_pattern_[pattern];
 
-        // Check if already subscribed, update QoS if so
+        // Check if already subscribed, update QoS and mode if so
         for (auto &existing : subs)
         {
             if (existing.session == session)
             {
                 existing.qos = qos;
+                existing.mode = mode;
+                existing.current_offset = start_offset;
                 return;
             }
         }
@@ -135,6 +138,44 @@ namespace highway
         }
 
         return std::vector<std::string>(it->second.begin(), it->second.end());
+    }
+
+    void SubscriptionManager::update_subscription_mode(Session *session, const std::string &pattern,
+                                                       SubscriptionMode new_mode)
+    {
+        std::unique_lock lock(mutex_);
+
+        auto it = subscriptions_by_pattern_.find(pattern);
+        if (it != subscriptions_by_pattern_.end())
+        {
+            for (auto &sub : it->second)
+            {
+                if (sub.session == session)
+                {
+                    sub.mode = new_mode;
+                    return;
+                }
+            }
+        }
+    }
+
+    void SubscriptionManager::update_subscription_offset(Session *session, const std::string &pattern,
+                                                          uint64_t new_offset)
+    {
+        std::unique_lock lock(mutex_);
+
+        auto it = subscriptions_by_pattern_.find(pattern);
+        if (it != subscriptions_by_pattern_.end())
+        {
+            for (auto &sub : it->second)
+            {
+                if (sub.session == session)
+                {
+                    sub.current_offset = new_offset;
+                    return;
+                }
+            }
+        }
     }
 
 } // namespace highway

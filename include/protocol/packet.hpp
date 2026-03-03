@@ -22,7 +22,13 @@ namespace highway
         UNSUBACK = 0xB0,    // Unsubscribe acknowledgment
         PINGREQ = 0xC0,     // Ping request (keepalive)
         PINGRESP = 0xD0,    // Ping response
-        DISCONNECT = 0xE0   // Graceful disconnect
+        DISCONNECT = 0xE0,  // Graceful disconnect
+        
+        // Offset-based access (v1.1)  
+        FETCH_ONE = 0x50,              // Fetch single message by offset
+        FETCH_RESPONSE = 0x51,         // Response with message data
+        SUBSCRIBE_FROM_OFFSET = 0x81,  // Subscribe starting from offset
+        OFFSET_NOT_FOUND = 0x52        // Offset error response
     };
 
     /**
@@ -83,6 +89,7 @@ namespace highway
     {
         std::string topic;
         uint16_t packet_id; // For QoS > 0
+        uint64_t offset;    // Message offset (0 if not available/applicable)
         std::vector<uint8_t> data;
 
         std::vector<uint8_t> serialize() const;
@@ -99,6 +106,59 @@ namespace highway
 
         std::vector<uint8_t> serialize() const;
         static SubscribePayload deserialize(const uint8_t *data, size_t len);
+    };
+
+    /**
+     * FETCH_ONE packet payload (stateless offset read)
+     */
+    struct FetchOnePayload
+    {
+        std::string topic;
+        uint64_t offset;
+
+        std::vector<uint8_t> serialize() const;
+        static FetchOnePayload deserialize(const uint8_t *data, size_t len);
+    };
+
+    /**
+     * FETCH_RESPONSE packet payload
+     */
+    struct FetchResponsePayload
+    {
+        std::string topic;
+        uint64_t offset;
+        std::vector<uint8_t> data;
+
+        std::vector<uint8_t> serialize() const;
+        static FetchResponsePayload deserialize(const uint8_t *data, size_t len);
+    };
+
+    /**
+     * SUBSCRIBE_FROM_OFFSET packet payload
+     */
+    struct SubscribeFromOffsetPayload
+    {
+        uint16_t packet_id;
+        std::string topic;
+        uint64_t start_offset;
+        QoS qos;
+
+        std::vector<uint8_t> serialize() const;
+        static SubscribeFromOffsetPayload deserialize(const uint8_t *data, size_t len);
+    };
+
+    /**
+     * OFFSET_NOT_FOUND error payload
+     */
+    struct OffsetNotFoundPayload
+    {
+        std::string topic;
+        uint64_t requested_offset;
+        uint64_t oldest_available;
+        uint64_t newest_available;
+
+        std::vector<uint8_t> serialize() const;
+        static OffsetNotFoundPayload deserialize(const uint8_t *data, size_t len);
     };
 
     /**

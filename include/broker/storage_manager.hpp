@@ -287,6 +287,18 @@ public:
   }
 
   /**
+   * Get head offset (latest written offset, same as get_last_offset)
+   */
+  uint64_t get_head_offset() const {
+    return get_last_offset();
+  }
+
+  /**
+   * Get oldest available offset (first message in oldest segment)
+   */
+  uint64_t get_oldest_offset() const;
+
+  /**
    * Get topic name
    */
   const std::string &topic() const { return topic_; }
@@ -513,8 +525,9 @@ public:
    * Process published message (hot path via Broker::on_publish).
    * Dispatches to appropriate SegmentLog.
    * Non-blocking: returns immediately.
+   * @return Assigned offset for the message
    */
-  void on_publish(const std::string &topic,
+  uint64_t on_publish(const std::string &topic,
                   const std::vector<uint8_t> &payload);
 
   // ---- Read Path ----
@@ -529,6 +542,20 @@ public:
    * Query if offset is available in this topic
    */
   bool has_offset(const std::string &topic, uint64_t offset) const;
+
+  /**
+   * Get the head offset (latest written) for a topic
+   * Returns the most recent offset written to the topic
+   * Returns 0 if topic doesn't exist
+   */
+  uint64_t get_head_offset(const std::string &topic) const;
+
+  /**
+   * Get the oldest available offset for a topic
+   * Returns the first offset still available (after retention)
+   * Returns 0 if topic doesn't exist
+   */
+  uint64_t get_oldest_offset(const std::string &topic) const;
 
   // ---- Storage Callbacks ----
 

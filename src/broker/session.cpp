@@ -99,12 +99,20 @@ void Session::process_packet() {
     case PacketType::DISCONNECT:
       handle_disconnect();
       break;
+    case PacketType::FETCH_ONE:
+      handle_fetch_one();
+      break;
+    case PacketType::SUBSCRIBE_FROM_OFFSET:
+      handle_subscribe_from_offset();
+      break;
 
     case PacketType::CONNACK:
     case PacketType::PUBACK:
     case PacketType::SUBACK:
     case PacketType::UNSUBACK:
     case PacketType::PINGRESP:
+    case PacketType::FETCH_RESPONSE:
+    case PacketType::OFFSET_NOT_FOUND:
       // These packet types are only sent by the broker, not expected from clients
       std::cerr << "[SESSION] Unexpected packet type from client: "
                 << static_cast<int>(type) << std::endl;
@@ -281,11 +289,12 @@ void Session::write_next() {
 }
 
 void Session::deliver(const std::string &topic,
-                      const std::vector<uint8_t> &payload, QoS qos) {
+                      const std::vector<uint8_t> &payload, QoS qos, uint64_t offset) {
   PublishPayload pub;
   pub.topic = topic;
   // Generate packet_id for QoS > 0 (required for acknowledgment matching)
   pub.packet_id = (qos > QoS::AtMostOnce) ? ++last_packet_id_ : 0;
+  pub.offset = offset;
   pub.data = payload;
 
   Packet packet = Packet::create(
@@ -335,6 +344,134 @@ void Session::add_subscription(const std::string &topic) {
 
 void Session::remove_subscription(const std::string &topic) {
   subscriptions_.erase(topic);
+}
+
+// ============================================================================
+// Offset-based access handlers (v1.1)
+// ============================================================================
+
+void Session::handle_fetch_one() {
+  if (!is_authenticated()) {
+    std::cerr << "[SESSION] FETCH_ONE before authentication" << std::endl;
+    close();
+    return;
+  }
+
+  try {
+    FetchOnePayload req = FetchOnePayload::deserialize(
+        payload_buffer_.data(), payload_buffer_.size());
+
+    std::cout << "[SESSION] FETCH_ONE: topic=" << req.topic 
+              << " offset=" << req.offset << std::endl;
+
+    // Check if offset exists using StorageManager
+    if (!broker_.storage().has_offset(req.topic, req.offset)) {
+      // Offset not found - send error with available range
+      uint64_t oldest = broker_.storage().get_oldest_offset(req.topic);
+      uint64_t newest = broker_.storage().get_head_offset(req.topic);
+      
+      send_offset_not_found(req.topic, req.offset, oldest, newest);
+      return;
+    }
+
+    // Read message from storage
+    std::vector<uint8_t> data = broker_.storage().read(req.topic, req.offset);
+    
+    if (data.empty()) {
+      // Read failed even though offset exists
+      uint64_t oldest = broker_.storage().get_oldest_offset(req.topic);
+      uint64_t newest = broker_.storage().get_head_offset(req.topic);
+      send_offset_not_found(req.topic, req.offset, oldest, newest);
+      return;
+    }
+
+    // Success - send response
+    send_fetch_response(req.topic, req.offset, data);
+
+  } catch (const std::exception &e) {
+    std::cerr << "[SESSION] FETCH_ONE error: " << e.what() << std::endl;
+  }
+}
+
+void Session::handle_subscribe_from_offset() {
+  if (!is_authenticated()) {
+    std::cerr << "[SESSION] SUBSCRIBE_FROM_OFFSET before authentication" << std::endl;
+    close();
+    return;
+  }
+
+  try {
+    SubscribeFromOffsetPayload req = SubscribeFromOffsetPayload::deserialize(
+        payload_buffer_.data(), payload_buffer_.size());
+
+    std::cout << "[SESSION] SUBSCRIBE_FROM_OFFSET: topic=" << req.topic 
+              << " start_offset=" << req.start_offset << std::endl;
+
+    // Validate offset range
+    uint64_t oldest = broker_.storage().get_oldest_offset(req.topic);
+    uint64_t newest = broker_.storage().get_head_offset(req.topic);
+
+    if (req.start_offset < oldest || req.start_offset > newest) {
+      // Invalid offset range
+      send_offset_not_found(req.topic, req.start_offset, oldest, newest);
+      
+      // Send SUBACK with failure
+      std::vector<QoS> granted = {static_cast<QoS>(0x80)};  // Failure code
+      send_suback(req.packet_id, granted);
+      return;
+    }
+
+    // Create subscription with CATCHUP_THEN_PUSH mode
+    broker_.on_subscribe(this, req.topic, req.qos, 
+                        SubscriptionMode::CATCHUP_THEN_PUSH, req.start_offset);
+
+    // Send SUBACK (success)
+    std::vector<QoS> granted = {req.qos};
+    send_suback(req.packet_id, granted);
+
+    // Trigger immediate replay of accumulated messages (catchup phase)
+    std::cout << "[SESSION] Starting catchup replay: topic=" << req.topic 
+              << " from_offset=" << req.start_offset << " to_offset=" << newest << std::endl;
+    
+    for (uint64_t offset = req.start_offset; offset <= newest; ++offset) {
+      // Read message from storage
+      std::vector<uint8_t> data = broker_.storage().read(req.topic, offset);
+      
+      if (!data.empty()) {
+        // Deliver to this session
+        deliver(req.topic, data, req.qos, offset);
+      }
+    }
+    
+    std::cout << "[SESSION] Catchup replay complete: topic=" << req.topic 
+              << " (will switch to PUSH_LIVE for new messages)" << std::endl;
+
+  } catch (const std::exception &e) {
+    std::cerr << "[SESSION] SUBSCRIBE_FROM_OFFSET error: " << e.what() << std::endl;
+  }
+}
+
+void Session::send_fetch_response(const std::string &topic, uint64_t offset,
+                                   const std::vector<uint8_t> &data) {
+  FetchResponsePayload resp;
+  resp.topic = topic;
+  resp.offset = offset;
+  resp.data = data;
+
+  Packet packet = Packet::create(PacketType::FETCH_RESPONSE, 0, resp.serialize());
+  send(packet);
+}
+
+void Session::send_offset_not_found(const std::string &topic, uint64_t requested_offset,
+                                    uint64_t oldest_available, uint64_t newest_available) {
+  OffsetNotFoundPayload resp;
+  resp.topic = topic;
+  resp.requested_offset = requested_offset;
+  resp.oldest_available = oldest_available;
+  resp.newest_available = newest_available;
+
+  Packet packet = Packet::create(PacketType::OFFSET_NOT_FOUND, 0, resp.serialize());
+  send(packet);
 }
 
 } // namespace highway

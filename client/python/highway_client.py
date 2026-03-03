@@ -25,6 +25,16 @@ class PacketType(IntEnum):
     PINGREQ = 0xC0
     PINGRESP = 0xD0
     DISCONNECT = 0xE0
+    # Offset-based access (v1.1)
+    FETCH_ONE = 0x50
+    FETCH_RESPONSE = 0x51
+    SUBSCRIBE_FROM_OFFSET = 0x81
+    OFFSET_NOT_FOUND = 0x52
+
+# Subscription modes (v1.1)
+class SubscriptionMode(IntEnum):
+    PUSH_LIVE = 0
+    CATCHUP_THEN_PUSH = 1
 
 # Quality of Service
 class QoS(IntEnum):
@@ -289,6 +299,10 @@ class HighwayClient:
             self._handle_puback(payload)
         elif packet_type == PacketType.PINGRESP:
             self._handle_pingresp()
+        elif packet_type == PacketType.FETCH_RESPONSE:
+            self._handle_fetch_response(payload)
+        elif packet_type == PacketType.OFFSET_NOT_FOUND:
+            self._handle_offset_not_found(payload)
         else:
             print(f'[CLIENT] Unknown packet type: 0x{packet_type:02x}')
 
@@ -321,11 +335,12 @@ class HighwayClient:
                 self.socket.close()
 
     def _handle_publish(self, header: dict, payload: bytes) -> None:
-        """Handle incoming PUBLISH message"""
+        """Handle incoming PUBLISH message (with offset metadata - v1.1)"""
         try:
             reader = BinaryReader(payload)
             topic = reader.read_string()
             packet_id = reader.read_u16()
+            offset = reader.read_u64()  # NEW: Offset metadata
             data = reader.read_remaining()
 
             qos = (header['flags'] >> 1) & 0x03
@@ -334,18 +349,19 @@ class HighwayClient:
             if qos == QoS.AT_LEAST_ONCE:
                 self._send_puback(packet_id)
 
-            # Emit message event
+            # Emit message event (with offset)
             message = {
                 'topic': topic,
                 'data': data,
                 'qos': qos,
-                'packet_id': packet_id
+                'packet_id': packet_id,
+                'offset': offset  # NEW: Include offset
             }
             self._emit('message', message)
 
             # Call message handlers
             for handler in self.message_handlers:
-                handler(topic, data)
+                handler(topic, data, offset)  # Pass offset to handler
         except Exception as err:
             self._emit_error(Exception(f'Failed to parse PUBLISH: {err}'))
 
@@ -500,6 +516,121 @@ class HighwayClient:
         header = create_packet_header(PacketType.PUBACK, 0, len(payload))
         packet = header + payload
         self.socket.sendall(packet)
+
+    def fetch_one(self, topic: str, offset: int, callback: Optional[Callable] = None) -> None:
+        """Fetch single message by offset (stateless) - v1.1
+        
+        Args:
+            topic: Topic name
+            offset: Message offset
+            callback: Called with (data, error, offset) or (None, error)
+        """
+        if self.state != State.AUTHENTICATED:
+            err = Exception('Not connected')
+            self._emit_error(err)
+            if callback:
+                callback(None, err)
+            return
+
+        payload = (BinaryWriter()
+                   .write_string(topic)
+                   .write_u64(offset)
+                   .release())
+
+        header = create_packet_header(PacketType.FETCH_ONE, 0, len(payload))
+        packet = header + payload
+
+        self.socket.sendall(packet)
+
+        print(f'[CLIENT] Sent FETCH_ONE: topic="{topic}", offset={offset}')
+
+        if callback:
+            # Register callback for response
+            self._once('fetchResponse', lambda msg: 
+                callback(msg['data'], None, msg['offset']) 
+                if msg['topic'] == topic and msg['offset'] == offset 
+                else None)
+            self._once('offsetNotFound', lambda err:
+                callback(None, err)
+                if err['topic'] == topic and err['requested_offset'] == offset
+                else None)
+
+    def subscribe_from_offset(self, topic: str, start_offset: int, 
+                             qos: int = QoS.AT_MOST_ONCE, callback: Optional[Callable] = None) -> None:
+        """Subscribe from specific offset with catch-up - v1.1
+        
+        Args:
+            topic: Topic name
+            start_offset: Starting offset for replay
+            qos: Quality of Service
+            callback: Called with (success, error)
+        """
+        if self.state != State.AUTHENTICATED:
+            err = Exception('Not connected')
+            self._emit_error(err)
+            if callback:
+                callback(False, err)
+            return
+
+        packet_id = self.next_packet_id
+        self.next_packet_id += 1
+
+        payload = (BinaryWriter()
+                   .write_u16(packet_id)
+                   .write_string(topic)
+                   .write_u64(start_offset)
+                   .write_u8(qos)
+                   .release())
+
+        header = create_packet_header(PacketType.SUBSCRIBE_FROM_OFFSET, 0, len(payload))
+        packet = header + payload
+
+        self.socket.sendall(packet)
+        
+        # Track subscription mode
+        self.subscriptions[topic] = {'qos': qos, 'mode': SubscriptionMode.CATCHUP_THEN_PUSH, 'offset': start_offset}
+
+        print(f'[CLIENT] Sent SUBSCRIBE_FROM_OFFSET: topic="{topic}", startOffset={start_offset}, QoS={qos}')
+
+        if callback:
+            self._once('suback', callback)
+
+    def _handle_fetch_response(self, payload: bytes) -> None:
+        """Handle FETCH_RESPONSE - v1.1"""
+        try:
+            reader = BinaryReader(payload)
+            topic = reader.read_string()
+            offset = reader.read_u64()
+            data = reader.read_remaining()
+
+            print(f'[CLIENT] FETCH_RESPONSE: topic=\"{topic}\", offset={offset}, size={len(data)}')
+
+            self._emit('fetchResponse', {'topic': topic, 'offset': offset, 'data': data})
+        except Exception as err:
+            self._emit_error(Exception(f'Failed to parse FETCH_RESPONSE: {err}'))
+
+    def _handle_offset_not_found(self, payload: bytes) -> None:
+        """Handle OFFSET_NOT_FOUND - v1.1"""
+        try:
+            reader = BinaryReader(payload)
+            topic = reader.read_string()
+            requested_offset = reader.read_u64()
+            oldest_available = reader.read_u64()
+            newest_available = reader.read_u64()
+
+            error = {
+                'topic': topic,
+                'requested_offset': requested_offset,
+                'oldest_available': oldest_available,
+                'newest_available': newest_available,
+                'message': f'Offset not found: {requested_offset}, available range: {oldest_available}-{newest_available}'
+            }
+
+            print(f'[CLIENT] OFFSET_NOT_FOUND: topic=\"{topic}\", requested={requested_offset}, available={oldest_available}-{newest_available}')
+
+            self._emit('offsetNotFound', error)
+        except Exception as err:
+            self._emit_error(Exception(f'Failed to parse OFFSET_NOT_FOUND: {err}'))
 
     def on_message(self, handler: Callable) -> None:
         """Set message handler callback"""
