@@ -5,7 +5,6 @@
 #include <memory>
 
 std::shared_ptr<highway::Broker> g_broker;
-std::shared_ptr<highway::StorageManager> g_storage_manager;
 
 void signal_handler(int signal)
 {
@@ -20,9 +19,6 @@ int main(int argc, char *argv[])
 {
     // Parse command line arguments
     highway::Broker::Config config;
-    highway::StorageManager::Config storage_config = highway::StorageManager::Config();
-
-    
 
     if (argc > 1)
     {
@@ -48,8 +44,6 @@ int main(int argc, char *argv[])
     try
     {
         g_broker = std::make_shared<highway::Broker>(config);
-        g_storage_manager =  std::make_shared<highway::StorageManager>(g_broker.get(), storage_config);
-        g_storage_manager->initialize();
         g_broker->start();
 
         bool tick = true;

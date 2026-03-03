@@ -1,4 +1,5 @@
 #include "broker/storage_manager.hpp"
+#include "broker/broker.hpp"
 #include <algorithm>
 #include <boost/crc.hpp>
 #include <cstring>
@@ -8,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <unordered_set>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -249,7 +251,7 @@ SegmentLog::load_segment(const std::string &file_path) {
     }
 
     // Scan messages to extract metadata
-    SegmentMetadata seg;
+    SegmentMetadata seg{};
     seg.file_path = file_path;
     seg.byte_position = 0;
     seg.max_size_bytes = SEGMENT_SIZE_BYTES;
@@ -258,39 +260,50 @@ SegmentLog::load_segment(const std::string &file_path) {
 
     size_t pos = 0;
     uint64_t last_offset = 0;
+    bool found_valid_message = false;
     
     while (pos < file_data.size()) {
       if (pos + sizeof(MessageHeader) > file_data.size()) {
         break;  // Not enough bytes for header
       }
 
-      const MessageHeader *hdr = 
-          reinterpret_cast<const MessageHeader *>(file_data.data() + pos);
+      MessageHeader hdr{};
+      std::memcpy(&hdr, file_data.data() + pos, sizeof(MessageHeader));
+
+      // Preallocated/tail padding is zero-filled, stop scan here.
+      if (hdr.size == 0) {
+        break;
+      }
       
       // Validate CRC
       boost::crc_32_type crc;
       const uint8_t *payload = file_data.data() + pos + sizeof(MessageHeader);
-      if (pos + sizeof(MessageHeader) + hdr->size > file_data.size()) {
+      if (pos + sizeof(MessageHeader) + hdr.size > file_data.size()) {
         std::cerr << "[SegmentLog] Corrupted message at offset " << pos 
                   << ", truncating" << std::endl;
         break;  // Corruption detected, truncate here
       }
 
-      crc.process_bytes(payload, hdr->size);
-      if (crc.checksum() != hdr->crc32) {
+      crc.process_bytes(payload, hdr.size);
+      if (crc.checksum() != hdr.crc32) {
         std::cerr << "[SegmentLog] CRC mismatch at offset " << pos 
                   << ", truncating segment" << std::endl;
         break;  // CRC error, truncate
       }
 
-      if (seg.base_offset == 0) {
-        seg.base_offset = hdr->offset;  // First message sets base offset
-        seg.id = hdr->offset;
+      if (!found_valid_message) {
+        seg.base_offset = hdr.offset;  // First valid message sets base offset
+        seg.id = hdr.offset;
+        found_valid_message = true;
       }
       
-      last_offset = hdr->offset;
-      size_t msg_size = sizeof(MessageHeader) + hdr->size;
+      last_offset = hdr.offset;
+      size_t msg_size = sizeof(MessageHeader) + hdr.size;
       pos += msg_size;
+    }
+
+    if (!found_valid_message) {
+      return std::nullopt;  // No valid messages in this file
     }
 
     seg.last_offset = last_offset;
@@ -347,8 +360,13 @@ void SegmentLog::recover() {
       segments_[seg.id] = seg;
       max_offset = std::max(max_offset, seg.last_offset);
 
-      std::cout << "[SegmentLog] Recovered segment " << seg.id 
-                << " with " << (seg.last_offset - seg.base_offset + 1) << " messages" << std::endl;
+        uint64_t recovered_count =
+          (seg.last_offset >= seg.base_offset)
+            ? (seg.last_offset - seg.base_offset + 1)
+            : 0;
+
+        std::cout << "[SegmentLog] Recovered segment " << seg.id 
+            << " with " << recovered_count << " messages" << std::endl;
     }
 
     // Update offset counter to continue from where we left off
@@ -784,14 +802,21 @@ StorageManager::StorageManager(Broker *broker, Config config = Config())
 StorageManager::~StorageManager() { shutdown(); }
 
 void StorageManager::initialize() {
-  // Create storage directory
+  // Create storage directory if it doesn't exist
   fs::create_directories(config_.storage_root);
 
-  // TODO: Recover from disk
+  std::cout << "[StorageManager] Initializing storage engine..." << std::endl;
+  std::cout << "[StorageManager] Storage root: " << config_.storage_root << std::endl;
+  std::cout << "[StorageManager] Retention period: "
+            << config_.retention_period.count() << " hours" << std::endl;
+
+  // Recover all topics from disk (full cold-start recovery)
   recover_all();
 
-  // Start retention cleanup
+  // Start background retention cleanup
   start_retention_cleanup();
+
+  std::cout << "[StorageManager] Initialization complete" << std::endl;
 }
 
 void StorageManager::shutdown() {
@@ -875,10 +900,41 @@ void StorageManager::on_storage_failure(const std::string &topic,
 }
 
 void StorageManager::recover_all() {
-  std::unique_lock lock(logs_mutex_);
-  for (auto &[topic, log] : logs_) {
-    log->recover();
+  std::cout << "[StorageManager] Starting cold start recovery..." << std::endl;
+
+  // Phase 1: Discover topics from disk
+  auto topics = discover_topics_from_disk();
+  std::cout << "[StorageManager] Found " << topics.size()
+            << " topics on disk" << std::endl;
+
+  // Phase 2: Create SegmentLog instances for each discovered topic
+  {
+    std::unique_lock lock(logs_mutex_);
+    for (const auto &topic : topics) {
+      if (logs_.find(topic) == logs_.end()) {
+        std::cout << "[StorageManager] Registering topic: " << topic << std::endl;
+        logs_[topic] = std::make_unique<SegmentLog>(topic, config_.storage_root);
+        
+        // Register with broker's topic manager for statistics
+        if (broker_) {
+          broker_->topics().register_topic(topic);
+        }
+      }
+    }
   }
+
+  // Phase 3: Recover each log (scan segments, validate CRC, rebuild index)
+  {
+    std::unique_lock lock(logs_mutex_);
+    for (auto &[topic, log] : logs_) {
+      std::cout << "[StorageManager] Recovering topic: " << topic << std::endl;
+      log->recover();
+
+    }
+  }
+
+  std::cout << "[StorageManager] Recovery complete. "
+            << logs_.size() << " topics loaded" << std::endl;
 }
 
 void StorageManager::start_retention_cleanup() {
@@ -994,6 +1050,51 @@ void StorageManager::cleanup_old_segments() {
       }
     }
   }
+}
+
+std::vector<std::string> StorageManager::discover_topics_from_disk() const {
+  std::vector<std::string> topics;
+  std::unordered_set<std::string> unique_topics;
+
+  if (!fs::exists(config_.storage_root)) {
+    std::cout << "[StorageManager] Storage root doesn't exist: " << config_.storage_root
+              << " (first startup)" << std::endl;
+    return topics; // Empty storage, first start
+  }
+
+  try {
+    // Recursively scan storage root and infer topic from parent directory of
+    // each segment file (.log).
+    for (const auto &entry : fs::recursive_directory_iterator(config_.storage_root)) {
+      if (!entry.is_regular_file() || entry.path().extension() != ".log") {
+        continue;
+      }
+
+      // Topic path is the parent directory relative to storage root.
+      // Example: ./storage/highway/1001/00000000000000000000.log -> highway/1001
+      const fs::path topic_path = entry.path().parent_path();
+      const fs::path rel_path = fs::relative(topic_path, config_.storage_root);
+
+      if (rel_path.empty() || rel_path == ".") {
+        continue;
+      }
+
+      std::string topic_name = rel_path.generic_string();
+      if (!topic_name.empty()) {
+        unique_topics.insert(topic_name);
+      }
+    }
+
+    topics.assign(unique_topics.begin(), unique_topics.end());
+  } catch (const std::exception &e) {
+    std::cerr << "[StorageManager] Error discovering topics: " << e.what()
+              << std::endl;
+  }
+
+  // Sort topics for deterministic ordering
+  std::sort(topics.begin(), topics.end());
+
+  return topics;
 }
 
 } // namespace highway

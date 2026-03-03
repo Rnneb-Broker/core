@@ -99,6 +99,16 @@ void Session::process_packet() {
     case PacketType::DISCONNECT:
       handle_disconnect();
       break;
+
+    case PacketType::CONNACK:
+    case PacketType::PUBACK:
+    case PacketType::SUBACK:
+    case PacketType::UNSUBACK:
+    case PacketType::PINGRESP:
+      // These packet types are only sent by the broker, not expected from clients
+      std::cerr << "[SESSION] Unexpected packet type from client: "
+                << static_cast<int>(type) << std::endl;
+      break;
     default:
       std::cerr << "[SESSION] Unknown packet type: "
                 << static_cast<int>(header_.type) << std::endl;

@@ -601,6 +601,13 @@ private:
   SegmentLog *get_or_create_log(const std::string &topic);
   FlushWorker *get_or_create_flush_worker(SegmentLog *log);
 
+  /**
+   * Scan storage directory and discover persisted topics.
+   * Returns list of topic names that have segment files on disk.
+   * Called during cold start recovery.
+   */
+  std::vector<std::string> discover_topics_from_disk() const;
+
   // Retention cleanup loop (runs in background thread)
   void retention_cleanup_loop();
   void cleanup_old_segments();
