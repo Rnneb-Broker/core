@@ -26,11 +26,11 @@ Complete instructions for building and installing RabbitBroker from source.
 
 Choose one of the following C++17 compatible compilers:
 
-| Compiler | Version | Status |
-|----------|---------|--------|
-| GCC | 7.0+ |  Tested |
-| Clang | 5.0+ |  Tested |
-| MSVC | 2017+ |  Supported |
+| Compiler | Version | Status    |
+| -------- | ------- | --------- |
+| GCC      | 7.0+    | Tested    |
+| Clang    | 5.0+    | Tested    |
+| MSVC     | 2017+   | Supported |
 
 ### Build Tools
 
@@ -58,7 +58,7 @@ For the impatient, here's the 5-minute setup:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/rabbit-broker.git
+git clone https://github.com/Rnneb-Broker/core.git
 cd rabbit-broker
 
 # 2. Create build directory
@@ -132,9 +132,9 @@ pip3 install conan
 #### Windows
 
 1. Install [Visual Studio Community](https://visualstudio.microsoft.com/community/)
-   - Select "Desktop development with C++"
-   - Select CMake tools
-   - Select Windows 10 SDK
+    - Select "Desktop development with C++"
+    - Select CMake tools
+    - Select Windows 10 SDK
 
 2. Install Git: https://git-scm.com/download/win
 
@@ -143,14 +143,14 @@ pip3 install conan
 4. Install CMake: https://cmake.org/download/
 
 5. Install Conan:
-   ```cmd
-   pip install conan
-   ```
+    ```cmd
+    pip install conan
+    ```
 
 ### Step 2: Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/rabbit-broker.git
+git clone https://github.com/Rnneb-Broker/core.git
 cd rabbit-broker
 git checkout main  # or your preferred branch
 ```
@@ -173,6 +173,7 @@ conan install .. --build=missing
 ```
 
 **Expected output:**
+
 ```
 conan profile detected: /home/user/.conan2/profiles/default
 Downloading conanfile.py: boost/1.84.0
@@ -196,6 +197,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
 ```
 
 **Generated files:**
+
 ```
 build/
 ├── CMakeCache.txt          # Configuration cache
@@ -221,6 +223,7 @@ cmake --build . -j 4
 ```
 
 **Build artifacts:**
+
 ```
 build/
 ├── broker                  # Broker executable
@@ -320,24 +323,28 @@ sudo make install
 ### Common Build Configurations
 
 **Release (Optimized)**:
+
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ ..
 make -j$(nproc)
 ```
 
 **Debug (Development)**:
+
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_CLANG_TIDY=ON ..
 make -j4
 ```
 
 **Static Linking**:
+
 ```bash
 cmake -DBUILD_SHARED_LIBS=OFF ..
 make
 ```
 
 **With GCC and Custom Optimization**:
+
 ```bash
 cmake -DCMAKE_CXX_COMPILER=g++ \
       -DCMAKE_CXX_FLAGS="-march=native -O3 -flto" \
@@ -384,7 +391,7 @@ cd build
 conan install .. --build=missing
 ```
 
-#### Error: "Multiple definitions of __gtest_main"
+#### Error: "Multiple definitions of \_\_gtest_main"
 
 ```bash
 # GTest linking error - remove from CMakeLists.txt or:

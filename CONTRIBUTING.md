@@ -29,16 +29,16 @@ We are committed to providing a welcoming and inclusive environment for all cont
 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/yourusername/rabbit-broker.git
-   cd rabbit-broker
-   ```
+    ```bash
+    git clone https://github.com/Rnneb-Broker/core.git
+    cd rabbit-broker
+    ```
 3. **Create a branch** for your work:
-   ```bash
-   git checkout -b feature/your-feature-name
-   # or
-   git checkout -b fix/your-bug-fix
-   ```
+    ```bash
+    git checkout -b feature/your-feature-name
+    # or
+    git checkout -b fix/your-bug-fix
+    ```
 4. **Make your changes** and commit regularly
 5. **Push to your fork** and submit a Pull Request
 
@@ -73,6 +73,7 @@ ctest --verbose
 ### Development with IDE
 
 **VSCode**:
+
 ```bash
 # Install CMake Tools extension
 # Open folder in VSCode - will auto-detect CMake project
@@ -81,6 +82,7 @@ ctest --verbose
 ```
 
 **CLion**:
+
 ```bash
 # Open the folder as a CMake project
 # CLion will auto-detect and configure
@@ -122,7 +124,7 @@ class MyClass {
 public:
     // Public methods
     void public_method();
-    
+
     // Public members (rarely used)
     int public_member;
 
@@ -134,7 +136,7 @@ private:
     // Private members
     int private_member_;
     std::mutex mutex_;
-    
+
     // Private methods
     void private_method();
 };
@@ -147,12 +149,12 @@ private:
 - **Indentation**: 2 spaces (no tabs)
 - **Line Length**: Maximum 100 characters (aim for 80)
 - **Braces**: Allman style for method definitions
-  ```cpp
-  void MyClass::method()
-  {
-      // body
-  }
-  ```
+    ```cpp
+    void MyClass::method()
+    {
+        // body
+    }
+    ```
 - **Comments**: Use `//` for single-line, `/* */` for multi-line
 - **Documentation**: Use inline comments sparingly; prefer clear code
 
@@ -163,10 +165,10 @@ private:
 - Prefer references over pointers when ownership is clear
 - Use move semantics where appropriate
 - Delete copy constructors when not needed:
-  ```cpp
-  MyClass(const MyClass&) = delete;
-  MyClass& operator=(const MyClass&) = delete;
-  ```
+    ```cpp
+    MyClass(const MyClass&) = delete;
+    MyClass& operator=(const MyClass&) = delete;
+    ```
 - Use `constexpr` for compile-time constants
 - Prefer range-based for loops
 
@@ -193,19 +195,19 @@ class MessageBuffer {
 public:
     explicit MessageBuffer(size_t capacity = 1024 * 1024);
     ~MessageBuffer();
-    
+
     // Non-copyable
     MessageBuffer(const MessageBuffer&) = delete;
     MessageBuffer& operator=(const MessageBuffer&) = delete;
-    
+
     // Movable
     MessageBuffer(MessageBuffer&&) noexcept = default;
     MessageBuffer& operator=(MessageBuffer&&) noexcept = default;
-    
+
     bool append(const std::vector<uint8_t>& data);
     size_t size() const { return size_.load(); }
     bool is_full() const { return size_.load() >= capacity_; }
-    
+
 private:
     std::vector<uint8_t> buffer_;
     size_t capacity_;
@@ -242,6 +244,7 @@ private:
 ### Scope
 
 The scope should specify what part of the codebase is affected:
+
 - `broker`
 - `client`
 - `storage`
@@ -304,14 +307,14 @@ Fixes #128
 ### Submitting a PR
 
 1. **Clear title**: Summarize the change
-   - Good: "Add sparse index for O(log N) message lookup"
-   - Bad: "Update code", "Fix stuff"
+    - Good: "Add sparse index for O(log N) message lookup"
+    - Bad: "Update code", "Fix stuff"
 
 2. **Detailed description**: Include
-   - What problem does this solve?
-   - How does the solution work?
-   - Any breaking changes?
-   - Related issues: `Fixes #123`, `Related to #456`
+    - What problem does this solve?
+    - How does the solution work?
+    - Any breaking changes?
+    - Related issues: `Fixes #123`, `Related to #456`
 
 3. **Screenshots/examples**: For UI changes, show before/after
 
@@ -319,21 +322,26 @@ Fixes #128
 
 ```markdown
 ## Description
+
 Brief description of the changes.
 
 ## Related Issues
+
 Fixes #(issue number)
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking)
 - [ ] New feature (non-breaking)
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
+
 Describe the tests you added/modified.
 
 ## Checklist
+
 - [ ] Tests pass locally
 - [ ] Code follows style guide
 - [ ] Documentation is updated
@@ -365,7 +373,7 @@ protected:
     void SetUp() override {
         // Setup code
     }
-    
+
     void TearDown() override {
         // Cleanup code
     }
@@ -375,10 +383,10 @@ TEST_F(StorageManagerTest, AppendMessageSucceeds) {
     // Arrange
     StorageManager manager;
     std::vector<uint8_t> payload = {1, 2, 3};
-    
+
     // Act
     bool result = manager.append_message(0, payload);
-    
+
     // Assert
     EXPECT_TRUE(result);
 }
@@ -512,29 +520,36 @@ Every source file should start with:
 
 ```markdown
 ## Description
+
 Clear, concise description of the bug.
 
 ## Environment
+
 - OS: (e.g., Ubuntu 20.04)
 - Compiler: (e.g., GCC 9.3)
 - Branch: (e.g., main, develop)
 - Commit: (e.g., abc1234)
 
 ## Reproduction Steps
+
 1. Step one
 2. Step two
 3. ...
 
 ## Expected Behavior
+
 What should happen?
 
 ## Actual Behavior
+
 What actually happens?
 
 ## Logs/Error Messages
+
 Relevant output, stack traces, etc.
 
 ## Minimal Reproducible Example
+
 Simplest code that reproduces the issue.
 ```
 
@@ -544,18 +559,23 @@ Simplest code that reproduces the issue.
 
 ```markdown
 ## Is your feature request related to a problem?
+
 Describe the problem it solves.
 
 ## Describe the Solution
+
 Clear description of what you want to happen.
 
 ## Describe Alternatives
+
 Other solutions or workarounds you've considered.
 
 ## Additional Context
+
 Any other context, mockups, or examples.
 
 ## Acceptance Criteria
+
 How would you know this feature is complete?
 ```
 

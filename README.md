@@ -1,6 +1,6 @@
 # RabbitBroker - High-Performance Message Broker System
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/yourusername/rabbit-broker)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/Rnneb-Broker/core)
 [![Language](https://img.shields.io/badge/language-C%2B%2B17-blue)](https://cplusplus.com/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -9,6 +9,7 @@ A **production-grade, high-performance message broker** built in C++17 with MQTT
 ## Key Features
 
 ### Core Capabilities
+
 - High-Throughput Async I/O: Event-driven architecture with Boost.Asio, configurable thread pools
 - Persistent Storage: Double-buffered segment logs with CRC validation and automatic recovery
 - MQTT-Compatible Protocol: Connect, Publish, Subscribe with QoS levels and wildcard support
@@ -16,12 +17,14 @@ A **production-grade, high-performance message broker** built in C++17 with MQTT
 - Offset-Based Message Access: Query and replay messages by offset or fetch from stored logs
 
 ### Performance Characteristics
+
 - Lock-Free Append Path: Single-writer principle with atomic buffer swaps
 - Sparse Indexing: O(log N) message lookup for efficient replay
 - Sub-Millisecond Latency: Optimized serialization and zero-copy where possible
 - Configurable Durability: FAST (100ms flush), BALANCED (on full), SAFE (per-message)
 
 ### Production Ready
+
 - Graceful Shutdown: Proper cleanup of connections and resources
 - Error Recovery: Segment validation and automatic recovery on startup
 - Thread-Safe: Comprehensive synchronization with proper memory ordering
@@ -64,12 +67,14 @@ A **production-grade, high-performance message broker** built in C++17 with MQTT
 ## Components
 
 ### Broker Core
+
 - **Broker**: Central coordinator managing connections, message routing, and subscriptions
 - **Session**: Per-client connection handler with protocol parsing and state machine
 - **TopicManager**: Topic registry with MQTT wildcard pattern matching
 - **SubscriptionManager**: Subscription tracking and message routing
 
 ### Storage System
+
 - **StorageManager**: Central registry for topic logs and retention management
 - **SegmentLog**: Per-topic append-only log with double-buffering and atomic buffer swaps
 - **Buffer**: Fixed-size circular write buffer optimized for O(1) append
@@ -77,10 +82,12 @@ A **production-grade, high-performance message broker** built in C++17 with MQTT
 - **SparseIndex**: One-per-1024 messages index enabling O(log N) message lookup
 
 ### Protocol
+
 - **PacketSerializer**: Binary protocol encoding/decoding
 - **BinaryReader/Writer**: Network byte order (big-endian) serialization utilities
 
 ### Clients
+
 - **C++ Client**: Async Boost.Asio-based client for publishers and subscribers
 - **JavaScript Client**: Node.js and browser-based WebSocket/TCP client
 - **Python Client**: Native Python client with sync/async support
@@ -103,6 +110,7 @@ Enables fast validation and recovery
 ## System Requirements
 
 ### Build Requirements
+
 - C++17 Compiler (GCC 7+, Clang 5+, MSVC 2017+)
 - CMake 3.15 or later
 - Conan package manager
@@ -110,6 +118,7 @@ Enables fast validation and recovery
 - GTest 1.14+ (for unit tests)
 
 ### Runtime Requirements
+
 - Linux/macOS/Windows: POSIX-compatible OS
 - Memory: Minimum 256MB (scales with buffer sizes and connections)
 - Disk: Configurable; segments rotate at 512MB by default
@@ -120,7 +129,7 @@ Enables fast validation and recovery
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rabbit-broker.git
+git clone https://github.com/Rnneb-Broker/core.git
 cd rabbit-broker
 
 # Create build directory
@@ -179,18 +188,18 @@ int main() {
     config.host = "127.0.0.1";
     config.port = 1883;
     config.client_id = "sensor_1";
-    
+
     auto client = std::make_shared<Client>(config);
-    
+
     // Connect to broker
     client->connect([](bool success) {
         if (success) std::cout << "Connected!\n";
     });
-    
+
     // Publish sensor reading
     std::vector<uint8_t> payload = {0x10, 0x20, 0x30};
     client->publish("rabbit/sensor_1/telemetry", payload, QoS::AtLeastOnce);
-    
+
     // Keep running
     client->run();
     return 0;
@@ -208,19 +217,19 @@ int main() {
     config.host = "127.0.0.1";
     config.port = 1883;
     config.client_id = "monitor_1";
-    
+
     auto client = std::make_shared<Client>(config);
-    
+
     // Set message handler
-    client->set_message_handler([](const std::string& topic, 
+    client->set_message_handler([](const std::string& topic,
                                    const std::vector<uint8_t>& payload) {
         std::cout << "Topic: " << topic << " Payload size: " << payload.size() << "\n";
     });
-    
+
     // Connect and subscribe with wildcard pattern
     client->connect();
     client->subscribe("rabbit/+/telemetry", QoS::AtMostOnce);
-    
+
     client->run();
     return 0;
 }
@@ -229,26 +238,26 @@ int main() {
 ### JavaScript Producer
 
 ```javascript
-const { Client } = require('./rabbit-client');
+const { Client } = require("./rabbit-client");
 
 const client = new Client({
-    host: '127.0.0.1',
+    host: "127.0.0.1",
     port: 1883,
-    clientId: 'sensor_js_1'
+    clientId: "sensor_js_1",
 });
 
-client.on('connect', () => {
-    console.log('Connected to broker');
-    
+client.on("connect", () => {
+    console.log("Connected to broker");
+
     // Publish every second
     setInterval(() => {
         const data = JSON.stringify({
-            sensorId: 'A1',
+            sensorId: "A1",
             speed: Math.random() * 120,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         });
-        
-        client.publish('rabbit/A1/telemetry', data, { qos: 1 });
+
+        client.publish("rabbit/A1/telemetry", data, { qos: 1 });
     }, 1000);
 });
 
@@ -258,20 +267,20 @@ client.connect();
 ### JavaScript Consumer
 
 ```javascript
-const { Client } = require('./rabbit-client');
+const { Client } = require("./rabbit-client");
 
 const client = new Client({
-    host: '127.0.0.1',
+    host: "127.0.0.1",
     port: 1883,
-    clientId: 'consumer_js_1'
+    clientId: "consumer_js_1",
 });
 
-client.on('connect', () => {
-    console.log('Connected');
-    client.subscribe('rabbit/+/telemetry', { qos: 0 });
+client.on("connect", () => {
+    console.log("Connected");
+    client.subscribe("rabbit/+/telemetry", { qos: 0 });
 });
 
-client.on('message', (topic, payload) => {
+client.on("message", (topic, payload) => {
     console.log(`[${topic}] ${payload.toString()}`);
 });
 
@@ -308,11 +317,11 @@ client.loop_forever()
 
 Rabbit uses MQTT-style wildcard patterns for flexible subscriptions:
 
-| Pattern | Description | Example Matches |
-|---------|-------------|-----------------|
-| `+` | Single-level wildcard | `rabbit/+/telemetry` matches `rabbit/A1/telemetry`, `rabbit/A2/telemetry` |
-| `#` | Multi-level wildcard | `rabbit/#` matches any topic under `rabbit/` |
-| Combined | Both wildcards | `rabbit/+/*/telemetry` matches `rabbit/A1/north/telemetry` |
+| Pattern  | Description           | Example Matches                                                           |
+| -------- | --------------------- | ------------------------------------------------------------------------- |
+| `+`      | Single-level wildcard | `rabbit/+/telemetry` matches `rabbit/A1/telemetry`, `rabbit/A2/telemetry` |
+| `#`      | Multi-level wildcard  | `rabbit/#` matches any topic under `rabbit/`                              |
+| Combined | Both wildcards        | `rabbit/+/*/telemetry` matches `rabbit/A1/north/telemetry`                |
 
 ## Configuration
 
@@ -340,24 +349,28 @@ storage_config.durability_mode = DurabilityMode::FAST;
 ## Subscription Modes
 
 ### PUSH_LIVE (Default)
+
 Receives new messages in real-time as they arrive:
+
 ```cpp
 client->subscribe("rabbit/+/telemetry", QoS::AtMostOnce);
 ```
 
 ### CATCHUP_THEN_PUSH (Replay)
+
 Receive historical messages starting from offset, then switch to live:
+
 ```cpp
 client->subscribe_from_offset("rabbit/+/telemetry", start_offset, QoS::AtMostOnce);
 ```
 
 ## Quality of Service (QoS)
 
-| Level | Name | Guarantee | Use Case |
-|-------|------|-----------|----------|
-| 0 | AtMostOnce | Fire and forget | Non-critical data, high volume |
-| 1 | AtLeastOnce | Guaranteed delivery | Important events (may receive duplicates) |
-| 2 | ExactlyOnce | Single delivery | Critical transactions (not yet implemented) |
+| Level | Name        | Guarantee           | Use Case                                    |
+| ----- | ----------- | ------------------- | ------------------------------------------- |
+| 0     | AtMostOnce  | Fire and forget     | Non-critical data, high volume              |
+| 1     | AtLeastOnce | Guaranteed delivery | Important events (may receive duplicates)   |
+| 2     | ExactlyOnce | Single delivery     | Critical transactions (not yet implemented) |
 
 ## Performance Characteristics
 
@@ -370,17 +383,20 @@ client->subscribe_from_offset("rabbit/+/telemetry", start_offset, QoS::AtMostOnc
 ## Testing
 
 ### Run All Tests
+
 ```bash
 cd build
 ctest
 ```
 
 ### Run Specific Test Suite
+
 ```bash
 ./storage_manager_test
 ```
 
 ### Manual Testing with Examples
+
 ```bash
 # Terminal 1
 ./broker
@@ -407,6 +423,7 @@ For detailed information, see:
 ## Contributing
 
 Please see CONTRIBUTING.md for guidelines on:
+
 - Code style and standards
 - Submitting pull requests
 - Running tests and validation
@@ -434,6 +451,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 Built with:
+
 - Boost.Asio - Async I/O
 - GTest - Testing framework
 - CMake - Build system
@@ -442,4 +460,3 @@ Built with:
 ---
 
 For more information and examples, please refer to the complete documentation in the docs directory.
-# .github

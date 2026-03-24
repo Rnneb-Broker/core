@@ -15,7 +15,7 @@ Get RabbitBroker running in 5 minutes.
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/rabbit-broker.git
+git clone https://github.com/Rnneb-Broker/core.git
 cd rabbit-broker
 
 # Create build directory
@@ -92,32 +92,33 @@ int main() {
     config.host = "127.0.0.1";
     config.port = 1883;
     config.client_id = "my_publisher";
-    
+
     // Create client
     auto client = std::make_shared<Client>(config);
-    
+
     // Set connection callback
     client->set_connect_handler([](bool success) {
         if (success) {
             std::cout << "Connected to broker!\n";
         }
     });
-    
+
     // Connect
     client->connect();
-    
+
     // Publish a message
     std::string message = "Hello Rabbit!";
     client->publish("my/topic", message);
-    
+
     // Run event loop
     client->run();
-    
+
     return 0;
 }
 ```
 
 Compile with:
+
 ```bash
 g++ -std=c++17 -I../include -L../build/lib \
     my_client.cpp -o my_client -lrabbit_client -lboost_system -lpthread
@@ -141,11 +142,11 @@ client->subscribe("sensor/#", QoS::AtMostOnce);
 ### Handle Received Messages
 
 ```cpp
-client->set_message_handler([](const std::string& topic, 
+client->set_message_handler([](const std::string& topic,
                                const std::vector<uint8_t>& payload) {
     std::cout << "Topic: " << topic << "\n";
     std::cout << "Payload size: " << payload.size() << "\n";
-    
+
     // Parse payload
     std::string msg(payload.begin(), payload.end());
     std::cout << "Message: " << msg << "\n";
@@ -175,20 +176,23 @@ npm install
 ### JavaScript Publisher
 
 ```javascript
-const { Client } = require('./rabbit-client');
+const { Client } = require("./rabbit-client");
 
 const client = new Client({
-    host: '127.0.0.1',
+    host: "127.0.0.1",
     port: 1883,
-    clientId: 'js_publisher'
+    clientId: "js_publisher",
 });
 
-client.on('connect', () => {
-    console.log('Connected!');
-    client.publish('my/topic', JSON.stringify({
-        temperature: 23.5,
-        humidity: 60
-    }));
+client.on("connect", () => {
+    console.log("Connected!");
+    client.publish(
+        "my/topic",
+        JSON.stringify({
+            temperature: 23.5,
+            humidity: 60,
+        }),
+    );
 });
 
 client.connect();
@@ -197,20 +201,20 @@ client.connect();
 ### JavaScript Subscriber
 
 ```javascript
-const { Client } = require('./rabbit-client');
+const { Client } = require("./rabbit-client");
 
 const client = new Client({
-    host: '127.0.0.1',
+    host: "127.0.0.1",
     port: 1883,
-    clientId: 'js_subscriber'
+    clientId: "js_subscriber",
 });
 
-client.on('connect', () => {
-    console.log('Connected!');
-    client.subscribe('my/topic');
+client.on("connect", () => {
+    console.log("Connected!");
+    client.subscribe("my/topic");
 });
 
-client.on('message', (topic, payload) => {
+client.on("message", (topic, payload) => {
     console.log(`Received [${topic}]: ${payload}`);
 });
 
@@ -218,6 +222,7 @@ client.connect();
 ```
 
 Run with:
+
 ```bash
 node publisher.js
 node subscriber.js
@@ -278,6 +283,7 @@ client.loop_forever()
 ```
 
 Run with:
+
 ```bash
 python3 publisher.py
 python3 subscriber.py
@@ -405,15 +411,15 @@ storage.retention_hours = 24;    // Keep 24 hours
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| cmake not found | Install CMake: sudo apt install cmake |
-| conan not found | Install Conan: pip3 install conan |
-| Compiler error | Install C++ compiler: sudo apt install build-essential |
-| Boost not found | Run: conan install .. --build=missing |
-| Port 1883 in use | Use: lsof -i :1883 to find and kill process |
-| Connection refused | Ensure broker is running in Terminal 1 |
-| Slow performance | Build in Release mode: cmake -DCMAKE_BUILD_TYPE=Release |
+| Issue              | Solution                                                |
+| ------------------ | ------------------------------------------------------- |
+| cmake not found    | Install CMake: sudo apt install cmake                   |
+| conan not found    | Install Conan: pip3 install conan                       |
+| Compiler error     | Install C++ compiler: sudo apt install build-essential  |
+| Boost not found    | Run: conan install .. --build=missing                   |
+| Port 1883 in use   | Use: lsof -i :1883 to find and kill process             |
+| Connection refused | Ensure broker is running in Terminal 1                  |
+| Slow performance   | Build in Release mode: cmake -DCMAKE_BUILD_TYPE=Release |
 
 ## Performance Notes
 
