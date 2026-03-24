@@ -1,4 +1,4 @@
-    # Highway Message Broker - Architecture Documentation
+    # Rabbit Message Broker - Architecture Documentation
 
     ## Table of Contents
 
@@ -17,7 +17,7 @@
 
     ```
     ┌─────────────────────────────────────────────────────────────────────────────────┐
-    │                           HIGHWAY TELEMETRY SYSTEM                              │
+    │                           RABBIT TELEMETRY SYSTEM                              │
     │                                                                                 │
     │  ┌─────────────────────────────────────────────────────────────────────────┐   │
     │  │                         PUBLISHERS (Sensors)                            │   │
@@ -29,7 +29,7 @@
     │  │       └────────────┴─────┬──────┴────────────┴────────────┘             │   │
     │  └──────────────────────────┼──────────────────────────────────────────────┘   │
     │                             │                                                   │
-    │                             │ PUBLISH: highway/{sensor_id}/telemetry            │
+    │                             │ PUBLISH: rabbit/{sensor_id}/telemetry            │
     │                             │ Data: {car_id, sensor_id, timestamp, speed}       │
     │                             ▼                                                   │
     │  ┌──────────────────────────────────────────────────────────────────────────┐  │
@@ -56,7 +56,7 @@
     │  │  └──────────────────────────────────┬───────────────────────────────┘    │  │
     │  └─────────────────────────────────────┼────────────────────────────────────┘  │
     │                                        │                                        │
-    │                                        │ DELIVER: highway/+/telemetry           │
+    │                                        │ DELIVER: rabbit/+/telemetry           │
     │                                        ▼                                        │
     │  ┌─────────────────────────────────────────────────────────────────────────┐   │
     │  │                         SUBSCRIBERS (Consumers)                         │   │
@@ -64,7 +64,7 @@
     │  │  │  Traffic Monitor  │  │     Dashboard     │  │   Alert Service   │   │   │
     │  │  │                   │  │                   │  │                   │   │   │
     │  │  │ Subscribes to:    │  │ Subscribes to:    │  │ Subscribes to:    │   │   │
-    │  │  │ highway/+/telemetry│ │ highway/#         │  │ highway/+/alerts  │   │   │
+    │  │  │ rabbit/+/telemetry│ │ rabbit/#         │  │ rabbit/+/alerts  │   │   │
     │  │  └───────────────────┘  └───────────────────┘  └───────────────────┘   │   │
     │  └─────────────────────────────────────────────────────────────────────────┘   │
     └─────────────────────────────────────────────────────────────────────────────────┘
@@ -74,11 +74,11 @@
 
     ## 2. Business Use Case
 
-    ### Highway Traffic Monitoring System
+    ### Rabbit Traffic Monitoring System
 
     ```
     ┌─────────────────────────────────────────────────────────────────────────────────┐
-    │                              HIGHWAY A1 (Physical)                              │
+    │                              RABBIT A1 (Physical)                              │
     │                                                                                 │
     │     KM 0          KM 10         KM 20         KM 30         KM 40              │
     │       │             │             │             │             │                 │
@@ -108,7 +108,7 @@
     │                                    ┌─────────────────┐                         │
     │                                    │  PUBLISH EVENT  │                         │
     │                                    │                 │                         │
-    │                                    │  Topic: highway/3/telemetry               │
+    │                                    │  Topic: rabbit/3/telemetry               │
     │                                    │  Data:                                    │
     │                                    │    car_id: 12345                          │
     │                                    │    speed: 3.0 km/h                        │
@@ -126,7 +126,7 @@
     │                                    │ Traffic Monitor │                         │
     │                                    │                 │                         │
     │                                    │ Subscribes to:  │                         │
-    │                                    │ highway/+/telemetry                       │
+    │                                    │ rabbit/+/telemetry                       │
     │                                    └────────┬────────┘                         │
     │                                             │                                  │
     │                              ┌──────────────┴──────────────┐                   │
@@ -168,7 +168,7 @@
     ┌─────────────────────────────────────────────────────────────────────────────────┐
     │                              CLIENT LIBRARY LAYER                               │
     │  ┌──────────────────────────────────────────────────────────────────────────┐  │
-    │  │                           highway::Client                                 │  │
+    │  │                           rabbit::Client                                 │  │
     │  │                                                                           │  │
     │  │  • connect()      - Establish connection to broker                       │  │
     │  │  • publish()      - Send message to topic                                │  │
@@ -194,7 +194,7 @@
     ┌─────────────────────────────────────────────────────────────────────────────────┐
     │                              BROKER CORE LAYER                                  │
     │  ┌─────────────────────────────────────────────────────────────────────────┐   │
-    │  │                           highway::Broker                                │   │
+    │  │                           rabbit::Broker                                │   │
     │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │   │
     │  │  │   Session   │  │   Topic     │  │Subscription │  │    I/O      │    │   │
     │  │  │   Manager   │  │   Manager   │  │   Manager   │  │   Threads   │    │   │
@@ -243,9 +243,9 @@
     │  │    parsing      │  │  • Topic registration   │  │  • Pattern matching │   │
     │  │  • State        │  │                         │  │  • Session cleanup  │   │
     │  │    machine      │  │  Topics stored:         │  │                     │   │
-    │  │  • Send queue   │  │  highway/1/telemetry    │  │  Subscriptions:     │   │
-    │  │                 │  │  highway/2/telemetry    │  │  highway/+/telemetry│   │
-    │  │  States:        │  │  highway/3/alerts       │  │  highway/#          │   │
+    │  │  • Send queue   │  │  rabbit/1/telemetry    │  │  Subscriptions:     │   │
+    │  │                 │  │  rabbit/2/telemetry    │  │  rabbit/+/telemetry│   │
+    │  │  States:        │  │  rabbit/3/alerts       │  │  rabbit/#          │   │
     │  │  • Connected    │  │  ...                    │  │  ...                │   │
     │  │  • Authenticated│  │                         │  │                     │   │
     │  │  • Disconnecting│  └─────────────────────────┘  └─────────────────────┘   │
@@ -275,7 +275,7 @@
     │  │  CONNACK (0x20)    ◄──  Broker → Client: "Welcome, connected!"           │ │
     │  │  PUBLISH (0x30)    ──►  Client → Broker: "Here's sensor data"            │ │
     │  │  PUBACK (0x40)     ◄──  Broker → Client: "Got it" (QoS 1)                │ │
-    │  │  SUBSCRIBE (0x80)  ──►  Client → Broker: "I want highway/+/telemetry"    │ │
+    │  │  SUBSCRIBE (0x80)  ──►  Client → Broker: "I want rabbit/+/telemetry"    │ │
     │  │  SUBACK (0x90)     ◄──  Broker → Client: "Subscribed!"                   │ │
     │  │  PINGREQ (0xC0)    ──►  Client → Broker: "Are you alive?"                │ │
     │  │  PINGRESP (0xD0)   ◄──  Broker → Client: "Yes!"                          │ │
@@ -473,7 +473,7 @@
     │  │  Topic Hierarchy Example                                                  │ │
     │  │  ───────────────────────                                                  │ │
     │  │                                                                           │ │
-    │  │                          highway                                          │ │
+    │  │                          rabbit                                          │ │
     │  │                             │                                             │ │
     │  │            ┌────────────────┼────────────────┐                           │ │
     │  │            │                │                │                           │ │
@@ -484,9 +484,9 @@
     │  │  telemetry   alerts  telemetry  alerts  telemetry  alerts               │ │
     │  │                                                                           │ │
     │  │  Full topic paths:                                                       │ │
-    │  │  • highway/1/telemetry                                                   │ │
-    │  │  • highway/1/alerts                                                      │ │
-    │  │  • highway/2/telemetry                                                   │ │
+    │  │  • rabbit/1/telemetry                                                   │ │
+    │  │  • rabbit/1/alerts                                                      │ │
+    │  │  • rabbit/2/telemetry                                                   │ │
     │  │  • ...                                                                   │ │
     │  └───────────────────────────────────────────────────────────────────────────┘ │
     │                                                                                 │
@@ -497,23 +497,23 @@
     │  │  '+' (Single Level Wildcard)                                             │ │
     │  │  ────────────────────────────                                            │ │
     │  │                                                                           │ │
-    │  │  Pattern: highway/+/telemetry                                            │ │
+    │  │  Pattern: rabbit/+/telemetry                                            │ │
     │  │                                                                           │ │
-    │  │  ✓ MATCHES:    highway/1/telemetry                                       │ │
-    │  │  ✓ MATCHES:    highway/2/telemetry                                       │ │
-    │  │  ✓ MATCHES:    highway/999/telemetry                                     │ │
-    │  │  ✗ NO MATCH:   highway/1/alerts                                          │ │
-    │  │  ✗ NO MATCH:   highway/1/2/telemetry                                     │ │
+    │  │  ✓ MATCHES:    rabbit/1/telemetry                                       │ │
+    │  │  ✓ MATCHES:    rabbit/2/telemetry                                       │ │
+    │  │  ✓ MATCHES:    rabbit/999/telemetry                                     │ │
+    │  │  ✗ NO MATCH:   rabbit/1/alerts                                          │ │
+    │  │  ✗ NO MATCH:   rabbit/1/2/telemetry                                     │ │
     │  │                                                                           │ │
     │  │  '#' (Multi Level Wildcard)                                              │ │
     │  │  ──────────────────────────                                              │ │
     │  │                                                                           │ │
-    │  │  Pattern: highway/#                                                       │ │
+    │  │  Pattern: rabbit/#                                                       │ │
     │  │                                                                           │ │
-    │  │  ✓ MATCHES:    highway/1/telemetry                                       │ │
-    │  │  ✓ MATCHES:    highway/1/alerts                                          │ │
-    │  │  ✓ MATCHES:    highway/2/telemetry                                       │ │
-    │  │  ✓ MATCHES:    highway/a/b/c/d/e                                         │ │
+    │  │  ✓ MATCHES:    rabbit/1/telemetry                                       │ │
+    │  │  ✓ MATCHES:    rabbit/1/alerts                                          │ │
+    │  │  ✓ MATCHES:    rabbit/2/telemetry                                       │ │
+    │  │  ✓ MATCHES:    rabbit/a/b/c/d/e                                         │ │
     │  │                                                                           │ │
     │  └───────────────────────────────────────────────────────────────────────────┘ │
     │                                                                                 │
@@ -549,18 +549,18 @@
     │  │  ┌─────────────────────────────────────────────────────────────────┐     │ │
     │  │  │  Pattern                    │  Subscribers                      │     │ │
     │  │  ├─────────────────────────────┼───────────────────────────────────┤     │ │
-    │  │  │  "highway/+/telemetry"      │  [Monitor1, Monitor2]             │     │ │
-    │  │  │  "highway/#"                │  [Dashboard]                      │     │ │
-    │  │  │  "highway/1/alerts"         │  [AlertService]                   │     │ │
+    │  │  │  "rabbit/+/telemetry"      │  [Monitor1, Monitor2]             │     │ │
+    │  │  │  "rabbit/#"                │  [Dashboard]                      │     │ │
+    │  │  │  "rabbit/1/alerts"         │  [AlertService]                   │     │ │
     │  │  └─────────────────────────────────────────────────────────────────┘     │ │
     │  │                                                                           │ │
     │  │  patterns_by_session_:                                                    │ │
     │  │  ┌─────────────────────────────────────────────────────────────────┐     │ │
     │  │  │  Session                    │  Subscribed Patterns              │     │ │
     │  │  ├─────────────────────────────┼───────────────────────────────────┤     │ │
-    │  │  │  Monitor1                   │  {"highway/+/telemetry"}          │     │ │
-    │  │  │  Dashboard                  │  {"highway/#"}                    │     │ │
-    │  │  │  AlertService               │  {"highway/1/alerts"}             │     │ │
+    │  │  │  Monitor1                   │  {"rabbit/+/telemetry"}          │     │ │
+    │  │  │  Dashboard                  │  {"rabbit/#"}                    │     │ │
+    │  │  │  AlertService               │  {"rabbit/1/alerts"}             │     │ │
     │  │  └─────────────────────────────────────────────────────────────────┘     │ │
     │  └───────────────────────────────────────────────────────────────────────────┘ │
     │                                                                                 │
@@ -568,15 +568,15 @@
     │  │  Message Routing Flow                                                     │ │
     │  │  ────────────────────                                                     │ │
     │  │                                                                           │ │
-    │  │  get_subscribers("highway/1/telemetry")                                  │ │
+    │  │  get_subscribers("rabbit/1/telemetry")                                  │ │
     │  │       │                                                                   │ │
     │  │       ▼                                                                   │ │
     │  │  ┌────────────────────────────────────────────────────────────┐          │ │
     │  │  │  For each pattern in subscriptions_by_pattern_:            │          │ │
     │  │  │                                                            │          │ │
-    │  │  │    "highway/+/telemetry" ──► matches? YES ──► add subs    │          │ │
-    │  │  │    "highway/#"           ──► matches? YES ──► add subs    │          │ │
-    │  │  │    "highway/1/alerts"    ──► matches? NO                  │          │ │
+    │  │  │    "rabbit/+/telemetry" ──► matches? YES ──► add subs    │          │ │
+    │  │  │    "rabbit/#"           ──► matches? YES ──► add subs    │          │ │
+    │  │  │    "rabbit/1/alerts"    ──► matches? NO                  │          │ │
     │  │  └────────────────────────────────────────────────────────────┘          │ │
     │  │       │                                                                   │ │
     │  │       ▼                                                                   │ │
@@ -632,7 +632,7 @@
     │  │  });                                                                      │ │
     │  │                                                                           │ │
     │  │  client->connect([&](bool ok) {                                          │ │
-    │  │      client->subscribe("highway/+/telemetry");  // Wildcard!             │ │
+    │  │      client->subscribe("rabbit/+/telemetry");  // Wildcard!             │ │
     │  │  });                                                                      │ │
     │  │                                                                           │ │
     │  │  client->run();  // Blocking - receives messages                         │ │
@@ -672,7 +672,7 @@
     │  │  • create(car_id, sensor_id, speed) → Auto-timestamp                     │ │
     │  │  • serialize() → Binary for network                                      │ │
     │  │  • deserialize(bytes) → Reconstruct object                               │ │
-    │  │  • topic() → "highway/{sensor_id}/telemetry"                             │ │
+    │  │  • topic() → "rabbit/{sensor_id}/telemetry"                             │ │
     │  └───────────────────────────────────────────────────────────────────────────┘ │
     │                                                                                 │
     │  ┌───────────────────────────────────────────────────────────────────────────┐ │
@@ -690,7 +690,7 @@
     │  │      vehicle_count: 47        // Cars affected                           │ │
     │  │  }                                                                        │ │
     │  │                                                                           │ │
-    │  │  Published to: highway/{sensor_id}/alerts                                │ │
+    │  │  Published to: rabbit/{sensor_id}/alerts                                │ │
     │  └───────────────────────────────────────────────────────────────────────────┘ │
     │                                                                                 │
     └─────────────────────────────────────────────────────────────────────────────────┘
@@ -710,7 +710,7 @@
     │  ║  STEP 1: SENSOR GENERATES EVENT                                           ║ │
     │  ╚═══════════════════════════════════════════════════════════════════════════╝ │
     │                                                                                 │
-    │     Highway Sensor                                                              │
+    │     Rabbit Sensor                                                              │
     │     ┌────────────────────────────────────┐                                     │
     │     │  Car detected!                     │                                     │
     │     │  • License: ABC-123                │                                     │
@@ -741,7 +741,7 @@
     │  ║  STEP 3: CREATE PUBLISH PACKET                                            ║ │
     │  ╚═══════════════════════════════════════════════════════════════════════════╝ │
     │                                                                                 │
-    │     client->publish("highway/3/telemetry", binary_data)                        │
+    │     client->publish("rabbit/3/telemetry", binary_data)                        │
     │                                                                                 │
     │     ┌───────────────────────────────────────────────────────────────────┐      │
     │     │  PUBLISH Packet                                                    │      │
@@ -754,7 +754,7 @@
     │     │  ├──────────────────────────────────────────────────────────────┤ │      │
     │     │  │ Payload                                                      │ │      │
     │     │  │ ┌────────────────────────────────────────────────────────┐  │ │      │
-    │     │  │ │ Topic: "highway/3/telemetry" (len-prefixed string)     │  │ │      │
+    │     │  │ │ Topic: "rabbit/3/telemetry" (len-prefixed string)     │  │ │      │
     │     │  │ │ Packet ID: 0x0000                                      │  │ │      │
     │     │  │ │ Data: [36 bytes of SensorEvent]                        │  │ │      │
     │     │  │ └────────────────────────────────────────────────────────┘  │ │      │
@@ -773,7 +773,7 @@
     │     Session::handle_publish()                                                   │
     │     ┌────────────────────────────────────────────────────────────────────┐     │
     │     │  1. Deserialize PublishPayload                                     │     │
-    │     │  2. Extract topic = "highway/3/telemetry"                         │     │
+    │     │  2. Extract topic = "rabbit/3/telemetry"                         │     │
     │     │  3. Extract data = [36 bytes]                                      │     │
     │     │  4. Call broker_.on_publish(topic, data, qos, this)               │     │
     │     └────────────────────────────────────────────────────────────────────┘     │
@@ -785,15 +785,15 @@
     │                                                                                 │
     │     Broker::on_publish()                                                        │
     │     ┌────────────────────────────────────────────────────────────────────┐     │
-    │     │  1. topic_manager_.register_topic("highway/3/telemetry")          │     │
+    │     │  1. topic_manager_.register_topic("rabbit/3/telemetry")          │     │
     │     │                                                                    │     │
-    │     │  2. subscription_manager_.get_subscribers("highway/3/telemetry")  │     │
+    │     │  2. subscription_manager_.get_subscribers("rabbit/3/telemetry")  │     │
     │     │                                                                    │     │
     │     │     Pattern Matching:                                              │     │
     │     │     ┌─────────────────────────────────────────────────────────┐   │     │
-    │     │     │ "highway/+/telemetry"  →  MATCH!  →  [Monitor1, Monitor2]│  │     │
-    │     │     │ "highway/#"            →  MATCH!  →  [Dashboard]         │  │     │
-    │     │     │ "highway/1/alerts"     →  NO MATCH                       │  │     │
+    │     │     │ "rabbit/+/telemetry"  →  MATCH!  →  [Monitor1, Monitor2]│  │     │
+    │     │     │ "rabbit/#"            →  MATCH!  →  [Dashboard]         │  │     │
+    │     │     │ "rabbit/1/alerts"     →  NO MATCH                       │  │     │
     │     │     └─────────────────────────────────────────────────────────┘   │     │
     │     │                                                                    │     │
     │     │  3. For each matching subscriber:                                 │     │
@@ -820,7 +820,7 @@
     │                                                                                 │
     │     TrafficMonitor                                                              │
     │     ┌────────────────────────────────────────────────────────────────────┐     │
-    │     │  on_message("highway/3/telemetry", payload):                      │     │
+    │     │  on_message("rabbit/3/telemetry", payload):                      │     │
     │     │                                                                    │     │
     │     │      SensorEvent event = SensorEvent::deserialize(payload);       │     │
     │     │                                                                    │     │
@@ -898,7 +898,7 @@
     │     │ Length (2B) │              UTF-8 Data                    │               │
     │     └─────────────┴────────────────────────────────────────────┘               │
     │                                                                                 │
-    │     Example: "highway/3/telemetry" (20 characters)                             │
+    │     Example: "rabbit/3/telemetry" (20 characters)                             │
     │                                                                                 │
     │     ┌────┬────┬───────────────────────────────────────────────┐                │
     │     │ 00 │ 14 │ h  i  g  h  w  a  y  /  3  /  t  e  l  e ... │                │
@@ -917,7 +917,7 @@
 
     ```
     ┌─────────────────────────────────────────────────────────────────────────────────┐
-    │                        TOPIC NAMING FOR HIGHWAY SYSTEM                          │
+    │                        TOPIC NAMING FOR RABBIT SYSTEM                          │
     │                                                                                 │
     │     Format: {domain}/{identifier}/{data_type}                                  │
     │                                                                                 │
@@ -925,29 +925,29 @@
     │     │  Telemetry Topics (Published by Sensors)                            │    │
     │     │  ──────────────────────────────────────                             │    │
     │     │                                                                      │    │
-    │     │  highway/1/telemetry     ─►  Sensor 1 data                          │    │
-    │     │  highway/2/telemetry     ─►  Sensor 2 data                          │    │
-    │     │  highway/3/telemetry     ─►  Sensor 3 data                          │    │
-    │     │  highway/{N}/telemetry   ─►  Sensor N data                          │    │
+    │     │  rabbit/1/telemetry     ─►  Sensor 1 data                          │    │
+    │     │  rabbit/2/telemetry     ─►  Sensor 2 data                          │    │
+    │     │  rabbit/3/telemetry     ─►  Sensor 3 data                          │    │
+    │     │  rabbit/{N}/telemetry   ─►  Sensor N data                          │    │
     │     └─────────────────────────────────────────────────────────────────────┘    │
     │                                                                                 │
     │     ┌─────────────────────────────────────────────────────────────────────┐    │
     │     │  Alert Topics (Published by Monitor)                                │    │
     │     │  ─────────────────────────────────────                              │    │
     │     │                                                                      │    │
-    │     │  highway/1/alerts        ─►  Alerts for sensor 1 area               │    │
-    │     │  highway/2/alerts        ─►  Alerts for sensor 2 area               │    │
-    │     │  highway/{N}/alerts      ─►  Alerts for sensor N area               │    │
+    │     │  rabbit/1/alerts        ─►  Alerts for sensor 1 area               │    │
+    │     │  rabbit/2/alerts        ─►  Alerts for sensor 2 area               │    │
+    │     │  rabbit/{N}/alerts      ─►  Alerts for sensor N area               │    │
     │     └─────────────────────────────────────────────────────────────────────┘    │
     │                                                                                 │
     │     ┌─────────────────────────────────────────────────────────────────────┐    │
     │     │  Subscription Patterns                                              │    │
     │     │  ─────────────────────                                              │    │
     │     │                                                                      │    │
-    │     │  highway/+/telemetry     ─►  All sensor telemetry                   │    │
-    │     │  highway/+/alerts        ─►  All alerts                             │    │
-    │     │  highway/#               ─►  Everything (telemetry + alerts)        │    │
-    │     │  highway/1/#             ─►  All data from sensor 1                 │    │
+    │     │  rabbit/+/telemetry     ─►  All sensor telemetry                   │    │
+    │     │  rabbit/+/alerts        ─►  All alerts                             │    │
+    │     │  rabbit/#               ─►  Everything (telemetry + alerts)        │    │
+    │     │  rabbit/1/#             ─►  All data from sensor 1                 │    │
     │     └─────────────────────────────────────────────────────────────────────┘    │
     │                                                                                 │
     └─────────────────────────────────────────────────────────────────────────────────┘
@@ -993,13 +993,13 @@
     │   Sensor              Broker              Monitor                               │
     │     │                   │                   │                                   │
     │     │                   │    SUBSCRIBE      │                                   │
-    │     │                   │◄──────────────────│  "highway/+/telemetry"            │
+    │     │                   │◄──────────────────│  "rabbit/+/telemetry"            │
     │     │                   │                   │                                   │
     │     │                   │    SUBACK         │                                   │
     │     │                   │──────────────────►│                                   │
     │     │                   │                   │                                   │
     │     │    PUBLISH        │                   │                                   │
-    │     │──────────────────►│                   │  topic: "highway/3/telemetry"     │
+    │     │──────────────────►│                   │  topic: "rabbit/3/telemetry"     │
     │     │                   │                   │  data: SensorEvent                │
     │     │                   │                   │                                   │
     │     │                   │──► Route Message  │                                   │
@@ -1045,7 +1045,7 @@
     │    │                │                 │                   │                     │
     │    │                │  PUBLISH        │                   │                     │
     │    │                │◄────────────────│                   │                     │
-    │    │                │  topic: highway/3/alerts            │                     │
+    │    │                │  topic: rabbit/3/alerts            │                     │
     │    │                │                 │                   │                     │
     │    │                │  PUBLISH (forward)                  │                     │
     │    │                │─────────────────────────────────────►                     │
@@ -1097,7 +1097,7 @@
     This documentation is now saved at [ARCHITECTURE.md](ARCHITECTURE.md). It provides:
 
     1. **System Overview** - High-level architecture diagram
-    2. **Business Use Case** - Highway sensor monitoring explained
+    2. **Business Use Case** - Rabbit sensor monitoring explained
     3. **Architecture Diagrams** - Layer and component views
     4. **Class Responsibilities** - What each class does
     5. **Data Flow Pipeline** - Step-by-step message routing

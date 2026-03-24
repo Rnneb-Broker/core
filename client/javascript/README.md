@@ -1,6 +1,6 @@
-# Highway Broker JavaScript Client
+# RabbitBroker JavaScript Client
 
-A lightweight JavaScript client for the Highway message broker, implementing the MQTT-lite protocol.
+A lightweight JavaScript client for the Rabbit message broker, implementing the MQTT-lite protocol.
 
 ## Features
 
@@ -49,9 +49,9 @@ See [WEB_CONSUMER_README.md](WEB_CONSUMER_README.md) for full documentation.
 ### 1. Consumer (Receive Messages)
 
 ```javascript
-const { HighwayClient, QoS } = require('./highway-client.js');
+const { RabbitClient, QoS } = require('./rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'my-consumer'
@@ -61,7 +61,7 @@ client.on('connect', () => {
   console.log('Connected!');
   
   // Subscribe to topic
-  client.subscribe('highway/sensor1/telemetry', QoS.AT_LEAST_ONCE);
+  client.subscribe('rabbit/sensor1/telemetry', QoS.AT_LEAST_ONCE);
 });
 
 client.on('message', (msg) => {
@@ -72,9 +72,9 @@ client.on('message', (msg) => {
 ### 2. Producer (Send Messages)
 
 ```javascript
-const { HighwayClient, QoS } = require('./highway-client.js');
+const { RabbitClient, QoS } = require('./rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'my-producer'
@@ -82,7 +82,7 @@ const client = new HighwayClient({
 
 client.on('connect', () => {
   // Publish message
-  client.publish('highway/sensor1/telemetry', 'speed=50km/h', QoS.AT_LEAST_ONCE);
+  client.publish('rabbit/sensor1/telemetry', 'speed=50km/h', QoS.AT_LEAST_ONCE);
 });
 ```
 
@@ -91,7 +91,7 @@ client.on('connect', () => {
 ### Constructor
 
 ```javascript
-new HighwayClient(config)
+new RabbitClient(config)
 ```
 
 **Config options:**
@@ -124,7 +124,7 @@ client.connect((success, err) => {
 Subscribe to topic.
 
 ```javascript
-client.subscribe('highway/+/telemetry', QoS.AT_LEAST_ONCE, (result) => {
+client.subscribe('rabbit/+/telemetry', QoS.AT_LEAST_ONCE, (result) => {
   console.log('Subscribed!');
 });
 ```
@@ -139,7 +139,7 @@ client.subscribe('highway/+/telemetry', QoS.AT_LEAST_ONCE, (result) => {
 Unsubscribe from topic.
 
 ```javascript
-client.unsubscribe('highway/sensor1/telemetry', (result) => {
+client.unsubscribe('rabbit/sensor1/telemetry', (result) => {
   console.log('Unsubscribed!');
 });
 ```
@@ -150,7 +150,7 @@ Publish message.
 
 ```javascript
 client.publish(
-  'highway/sensor1/telemetry',
+  'rabbit/sensor1/telemetry',
   'speed=50km/h',
   QoS.AT_LEAST_ONCE,
   (success) => {
@@ -200,7 +200,7 @@ Get list of subscribed topics.
 
 ```javascript
 const topics = client.getSubscriptions();
-console.log(topics); // ['highway/+/telemetry', 'highway/+/alerts']
+console.log(topics); // ['rabbit/+/telemetry', 'rabbit/+/alerts']
 ```
 
 ### Events
@@ -276,7 +276,7 @@ client.on('puback', (result) => {
 npm run consumer
 ```
 
-Subscribes to `highway/+/telemetry` and `highway/+/alerts` and prints all messages.
+Subscribes to `rabbit/+/telemetry` and `rabbit/+/alerts` and prints all messages.
 
 ### Run Producer
 ```bash
@@ -296,9 +296,9 @@ Real-time traffic monitoring with statistics display.
 
 The broker supports MQTT-style topic wildcards:
 
-- `highway/+/telemetry` - Single level wildcard (matches `highway/sensor1/telemetry`)
-- `highway/#` - Multi-level wildcard (matches any topic under `highway/`)
-- `highway/sensor1/telemetry` - Exact match
+- `rabbit/+/telemetry` - Single level wildcard (matches `rabbit/sensor1/telemetry`)
+- `rabbit/#` - Multi-level wildcard (matches any topic under `rabbit/`)
+- `rabbit/sensor1/telemetry` - Exact match
 
 ## Message Format
 

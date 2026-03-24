@@ -1,4 +1,4 @@
-# Complete System Summary: Highway Broker + JavaScript Client
+# Complete System Summary: RabbitBroker + JavaScript Client
 
 ## 🎯 What We've Built
 
@@ -11,7 +11,7 @@ A **production-ready message broker system** with full C++ backend and JavaScrip
 ### 1. C++ Broker (`/src/broker/`)
 
 **Core Engine:**
-- **HighwayBroker** - Main broker class handling TCP connections
+- **RabbitBroker** - Main broker class handling TCP connections
 - **FrostSession** - Per-client session management with QoS tracking
 - **StorageManager** - Persistent message log management
 - **SegmentLog** - Append-only message log with CRC32 validation
@@ -40,7 +40,7 @@ src/broker/
 
 ### 2. JavaScript Client (`/client/`)
 
-**Main Library: `highway-client.js`**
+**Main Library: `rabbit-client.js`**
 - [+] Zero external dependencies (uses only Node.js `net` module)
 - [+] Binary packet serialization
 - [+] Event-driven API (EventEmitter)
@@ -50,7 +50,7 @@ src/broker/
 - [+] Connection state machine
 
 **Classes:**
-- `HighwayClient` - Main client class
+- `RabbitClient` - Main client class
 - `BinaryWriter` - Binary protocol serialization
 - `BinaryReader` - Binary protocol deserialization
 
@@ -62,7 +62,7 @@ src/broker/
 **Files:**
 ```
 client/
-├── highway-client.js                 # Main library (500+ lines)
+├── rabbit-client.js                 # Main library (500+ lines)
 ├── package.json                      # Node.js project file
 ├── README.md                         # Quick start
 ├── API.md                            # Complete API reference
@@ -78,7 +78,7 @@ client/
 
 **Architecture:**
 ```
-storage/highway/
+storage/rabbit/
 └─ {topic}/
    ├─ 000000000000.log               # Segment file (512MB max)
    ├─ 000000000001.log
@@ -127,7 +127,7 @@ storage/highway/
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│            Highway Broker (C++)                         │
+│            RabbitBroker (C++)                         │
 │  Port 1883                                              │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐  │
@@ -174,7 +174,7 @@ storage/highway/
 │  │  - Segment files (512MB max)                     │ │
 │  │  - Sparse index (1/1024 entries)                │ │
 │  │  - CRC32 validation                              │ │
-│  │  - Storage path: storage/highway/{topic}/       │ │
+│  │  - Storage path: storage/rabbit/{topic}/       │ │
 │  └──────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
                ↑                              ↑
@@ -184,7 +184,7 @@ storage/highway/
 │          JavaScript Clients (Multiple Instances)        │
 │                                                         │
 │  ┌──────────────────┐  ┌──────────────────────────┐   │
-│  │  HighwayClient   │  │     HighwayClient        │   │
+│  │  RabbitClient   │  │     RabbitClient        │   │
 │  │  (Consumer)      │  │     (Producer)           │   │
 │  │                  │  │                          │   │
 │  │ on('message' ..→ │  │ publish('topic', data)   │   │
@@ -207,7 +207,7 @@ storage/highway/
 ### Publish Flow
 
 ```javascript
-client.publish('highway/1001/telemetry', '{"speed":50}', QoS.AT_LEAST_ONCE);
+client.publish('rabbit/1001/telemetry', '{"speed":50}', QoS.AT_LEAST_ONCE);
 
 Flow:
 1. Client.publish() → create PUBLISH packet
@@ -235,7 +235,7 @@ Time ~100ms:
   - Reads current buffer state
   - If > 95% full OR timeout → flush
   - Calls write_to_segment()
-  - Messages written to storage/highway/{topic}/000000000000.log
+  - Messages written to storage/rabbit/{topic}/000000000000.log
   - CRC32 appended for each message
   - fsync() ensures durability
   - Sparse index updated (every 1024 messages)
@@ -253,7 +253,7 @@ Storage format:
 ```
 Broker starts:
 1. Calls storage_manager.recover()
-2. Scans storage/highway/ directory
+2. Scans storage/rabbit/ directory
 3. For each topic:
    a. Find all .log segment files
    b. Open latest segment
@@ -358,9 +358,9 @@ node examples/monitor.js
 ### 3. Create Custom Application
 
 ```javascript
-const { HighwayClient, QoS } = require('./highway-client.js');
+const { RabbitClient, QoS } = require('./rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'my-app'
@@ -453,7 +453,7 @@ Topic Router
          ↓
     SegmentLog::write_to_segment()
          ↓
-    storage/highway/{topic}/000000000000.log
+    storage/rabbit/{topic}/000000000000.log
          ↓
     fsync() → Durable on disk
          ↓ (with sparse index)

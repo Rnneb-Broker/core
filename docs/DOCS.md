@@ -2,7 +2,7 @@
 
 ## What We've Built For You
 
-A complete, production-ready **Highway Broker** system with JavaScript client for pub/sub messaging, persistent storage, and full documentation.
+A complete, production-ready **RabbitBroker** system with JavaScript client for pub/sub messaging, persistent storage, and full documentation.
 
 ---
 
@@ -167,10 +167,10 @@ kafka-system/                           # Root directory
 │   │  └─ traffic_monitor               👁️ CLI monitor
 │   │
 │   └─ storage/                         💿 Data files
-│      └─ highway/                      Per-topic storage
+│      └─ rabbit/                      Per-topic storage
 │
 ├── 🟨 JAVASCRIPT CLIENT
-│   ├─ highway-client.js                📚 Main library
+│   ├─ rabbit-client.js                📚 Main library
 │   ├─ package.json                     📦 Dependencies
 │   │
 │   ├─ 📖 CLIENT DOCS

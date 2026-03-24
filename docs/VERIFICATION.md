@@ -14,7 +14,7 @@
 - [ ] Workspace path: `/home/ghost/dev/projects/ilisi-projecrs/kafka-system`
 - [ ] Build directory exists: `ls -d build/`
 - [ ] Source files present: `ls src/broker/*.cpp`
-- [ ] Client files present: `ls client/highway-client.js`
+- [ ] Client files present: `ls client/rabbit-client.js`
 - [ ] Examples present: `ls client/examples/*.js`
 
 ### Dependencies
@@ -100,16 +100,16 @@ node -e "console.log(process.platform)"  # Should be 'linux'
 ### Client Library Syntax
 ```bash
 cd /home/ghost/dev/projects/ilisi-projecrs/kafka-system/client
-node -c highway-client.js   # Syntax check
+node -c rabbit-client.js   # Syntax check
 ```
 
 **Checklist:**
 - [ ] No syntax errors
 - [ ] File is readable
-- [ ] Size ~15KB: `ls -lh highway-client.js`
+- [ ] Size ~15KB: `ls -lh rabbit-client.js`
 
 ### Client Files Present
-- [ ] Main library: `test -f highway-client.js`
+- [ ] Main library: `test -f rabbit-client.js`
 - [ ] Examples: `test -f examples/consumer.js && test -f examples/producer.js && test -f examples/monitor.js`
 - [ ] Documentation: `test -f README.md && test -f API.md`
 
@@ -126,7 +126,7 @@ node examples/producer.js
 **Expected Output:**
 ```
 Connecting to localhost:1883...
-[+] Connected to Highway Broker
+[+] Connected to RabbitBroker
 Publishing sensor telemetry...
 [Sensor 1001] Published: {"timestamp":"...","speed":45,...}
 [Sensor 1002] Published: {"timestamp":"...","speed":62,...}
@@ -154,12 +154,12 @@ node examples/consumer.js
 **Expected Output:**
 ```
 Connecting to localhost:1883...
-[+] Connected to Highway Broker
-Subscribed to: highway/+/telemetry, highway/+/alerts
+[+] Connected to RabbitBroker
+Subscribed to: rabbit/+/telemetry, rabbit/+/alerts
 Waiting for messages... (Ctrl+C to exit)
 
 📨 Message received:
-   Topic: highway/1001/telemetry
+   Topic: rabbit/1001/telemetry
    Data: {"timestamp":"...","sensorId":"1001",...}
    QoS: 1
    PacketId: 42
@@ -193,7 +193,7 @@ node examples/monitor.js
 
 **Expected Output:**
 ```
-Connected to Highway Broker
+Connected to RabbitBroker
 Monitoring telemetry and alerts...
 
 📊 TRAFFIC STATISTICS (Time: 2024-01-15T12:35:00Z)
@@ -220,13 +220,13 @@ Monitoring telemetry and alerts...
 
 ### While Producer Running
 ```bash
-ls -la storage/highway/
+ls -la storage/rabbit/
 find storage -name "*.log" -type f
 du -sh storage/
 ```
 
 **Checklist:**
-- [ ] Directory `storage/highway/` exists
+- [ ] Directory `storage/rabbit/` exists
 - [ ] Subdirectories for each topic created
 - [ ] `.log` files created (at least 1)
 - [ ] Files are non-empty (> 0 bytes)
@@ -235,7 +235,7 @@ du -sh storage/
 
 ### File Format Validation
 ```bash
-hexdump -C storage/highway/1001/000000000000.log | head -20
+hexdump -C storage/rabbit/1001/000000000000.log | head -20
 ```
 
 **Checklist:**
@@ -245,9 +245,9 @@ hexdump -C storage/highway/1001/000000000000.log | head -20
 
 ### Storage Growth
 ```bash
-du -sh storage/highway/
+du -sh storage/rabbit/
 # Run for 1 minute, then repeat
-du -sh storage/highway/
+du -sh storage/rabbit/
 ```
 
 **Checklist:**
@@ -265,7 +265,7 @@ du -sh storage/highway/
 2. Stop broker (Ctrl+C in Terminal 1)
 3. Check storage files persist:
    ```bash
-   ls -la storage/highway/*/
+   ls -la storage/rabbit/*/
    ```
 4. Restart broker:
    ```bash
@@ -515,4 +515,4 @@ Ready:      [+] PRODUCTION-READY
 
 ---
 
-You've successfully built and verified Highway Broker! 🚀
+You've successfully built and verified RabbitBroker! 🚀

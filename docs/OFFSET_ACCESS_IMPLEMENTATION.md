@@ -1,8 +1,8 @@
-# Highway Broker v1.1: Controlled Offset-Based Access
+# RabbitBroker v1.1: Controlled Offset-Based Access
 
 ## Overview
 
-Extended Highway Broker with controlled offset-based access without changing its push-first architecture. The broker now supports:
+Extended RabbitBroker with controlled offset-based access without changing its push-first architecture. The broker now supports:
 
 1. **FETCH_ONE** - Stateless random read by offset
 2. **SUBSCRIBE_FROM_OFFSET** - Catch-up-then-push subscription mode
@@ -256,7 +256,7 @@ Final: PUSH_LIVE (current_offset tracked but not used)
 ```cpp
 // Create FETCH_ONE request
 FetchOnePayload fetch;
-fetch.topic = "highway/A1/telemetry";
+fetch.topic = "rabbit/A1/telemetry";
 fetch.offset = 42;
 
 // Send request
@@ -280,7 +280,7 @@ if (response.type == PacketType::FETCH_RESPONSE) {
 // Subscribe from specific offset
 SubscribeFromOffsetPayload sub;
 sub.packet_id = 1;
-sub.topic = "highway/A1/telemetry";
+sub.topic = "rabbit/A1/telemetry";
 sub.start_offset = 0;  // Start from beginning
 sub.qos = QoS::AtLeastOnce;
 
@@ -361,7 +361,7 @@ The implementation maintains backward compatibility:
 
 ## Conclusion
 
-Highway Broker v1.1 successfully extends a push-first message broker with controlled offset-based access while:
+RabbitBroker v1.1 successfully extends a push-first message broker with controlled offset-based access while:
 - ✅ Preserving the original push-live architecture
 - ✅ Keeping implementation simple and maintainable
 - ✅ Providing both stateless (FETCH_ONE) and stateful (SUBSCRIBE_FROM_OFFSET) access patterns

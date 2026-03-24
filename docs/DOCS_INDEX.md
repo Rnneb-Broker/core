@@ -33,10 +33,10 @@ High-level system design, component interactions, and data flow.
 ## 📖 Main Documentation
 
 ### [README.md](../README.md)
-Primary documentation for the complete Highway Broker system.
+Primary documentation for the complete RabbitBroker system.
 
 **Sections:**
-- What is Highway Broker?
+- What is RabbitBroker?
 - Features overview
 - Installation instructions
 - Building from source
@@ -82,7 +82,7 @@ Overview and quick start for Node.js client.
 **Read this if:** You're new to the JavaScript client.
 
 ### [client/API.md](./../client/API.md)
-Complete API reference for HighwayClient class.
+Complete API reference for RabbitClient class.
 
 **Sections:**
 - Constructor with all options
@@ -164,7 +164,7 @@ Example: Real-time traffic monitoring.
 
 ## 🎯 Core Library Files
 
-### [client/highway-client.js](./../client/highway-client.js)
+### [client/rabbit-client.js](./../client/rabbit-client.js)
 Main JavaScript MQTT-lite client library.
 
 **Features:**
@@ -175,7 +175,7 @@ Main JavaScript MQTT-lite client library.
 - QoS 0/1/2 support
 - Topic wildcards
 
-**Import:** `const { HighwayClient, QoS } = require('./highway-client.js')`
+**Import:** `const { RabbitClient, QoS } = require('./rabbit-client.js')`
 
 ---
 
@@ -249,7 +249,7 @@ START HERE
 │   └── protocol/                       # MQTT-lite protocol definitions
 │
 ├── client/                             # JavaScript client directory
-│   ├── highway-client.js               # Main client library (500+ lines)
+│   ├── rabbit-client.js               # Main client library (500+ lines)
 │   ├── package.json                    # Node.js metadata
 │   │
 │   ├── README.md                       # Quick start
@@ -294,7 +294,7 @@ START HERE
 1. [ARCHITECTURE.md](ARCHITECTURE.md) - Understand design
 2. [src/broker/storage_manager.hpp](src/broker/storage_manager.hpp) - Study interfaces
 3. [src/broker/storage_manager.cpp](src/broker/storage_manager.cpp) - Study implementation
-4. [client/highway-client.js](./../client/highway-client.js) - Understand protocol
+4. [client/rabbit-client.js](./../client/rabbit-client.js) - Understand protocol
 5. Build and test locally
 
 ### Path 4: "I want to deploy and monitor"

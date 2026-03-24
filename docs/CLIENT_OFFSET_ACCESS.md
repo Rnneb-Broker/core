@@ -1,4 +1,4 @@
-# Highway Client Library Updates - Offset-Based Access (v1.1)
+# Rabbit Client Library Updates - Offset-Based Access (v1.1)
 
 ## Overview
 
@@ -34,7 +34,7 @@ const SubscriptionMode = {
 Fetch a single message by offset (stateless operation).
 
 ```javascript
-client.fetchOne('highway/A1/telemetry', 42, (data, error, offset) => {
+client.fetchOne('rabbit/A1/telemetry', 42, (data, error, offset) => {
   if (error) {
     console.log(`Error: ${error.message}`);
     console.log(`Available range: ${error.oldestAvailable}-${error.newestAvailable}`);
@@ -54,7 +54,7 @@ client.fetchOne('highway/A1/telemetry', 42, (data, error, offset) => {
 Subscribe to a topic starting from a specific offset, replaying messages until caught up.
 
 ```javascript
-client.subscribeFromOffset('highway/A1/telemetry', 0, QoS.AT_LEAST_ONCE, (ack) => {
+client.subscribeFromOffset('rabbit/A1/telemetry', 0, QoS.AT_LEAST_ONCE, (ack) => {
   console.log(`Subscription acknowledged: ${JSON.stringify(ack)}`);
 });
 
@@ -139,13 +139,13 @@ def handle_fetch_response(data, error, offset):
     
     print(f"Message at offset {offset}: {data}")
 
-client.fetch_one('highway/A1/telemetry', 42, handle_fetch_response)
+client.fetch_one('rabbit/A1/telemetry', 42, handle_fetch_response)
 ```
 
 **Error Response:**
 ```python
 {
-    'topic': 'highway/A1/telemetry',
+    'topic': 'rabbit/A1/telemetry',
     'requested_offset': 42,
     'oldest_available': 0,
     'newest_available': 100,
@@ -161,7 +161,7 @@ Subscribe to a topic starting from a specific offset with catch-up replay.
 def on_subscribe_ack(ack):
     print(f"Subscription acknowledged: {ack}")
 
-client.subscribe_from_offset('highway/A1/telemetry', 0, 
+client.subscribe_from_offset('rabbit/A1/telemetry', 0, 
                             QoS.AT_LEAST_ONCE, on_subscribe_ack)
 
 # Messages flow with offset metadata
@@ -224,9 +224,9 @@ client.on('offsetNotFound', handle_offset_not_found)
 ### JavaScript - Complete Example
 
 ```javascript
-const HighwayClient = require('./highway-client');
+const RabbitClient = require('./rabbit-client');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'my-consumer',
@@ -234,10 +234,10 @@ const client = new HighwayClient({
 });
 
 client.on('connect', () => {
-  console.log('Connected to Highway Broker');
+  console.log('Connected to RabbitBroker');
   
   // Example 1: Fetch a single message by offset
-  client.fetchOne('highway/A1/telemetry', 42, (data, error, offset) => {
+  client.fetchOne('rabbit/A1/telemetry', 42, (data, error, offset) => {
     if (error) {
       console.log(`Fetch failed: ${error.message}`);
       return;
@@ -246,7 +246,7 @@ client.on('connect', () => {
   });
   
   // Example 2: Subscribe from offset (catch-up then live)
-  client.subscribeFromOffset('highway/A2/telemetry', 0, 1, (ack) => {
+  client.subscribeFromOffset('rabbit/A2/telemetry', 0, 1, (ack) => {
     console.log(`Subscription created: ${JSON.stringify(ack)}`);
   });
 });
@@ -267,12 +267,12 @@ client.on('offsetNotFound', (error) => {
 ### Python - Complete Example
 
 ```python
-from highway_client import HighwayClient, QoS
+from rabbit_client import RabbitClient, QoS
 
-client = HighwayClient('localhost', 1883, 'my-consumer')
+client = RabbitClient('localhost', 1883, 'my-consumer')
 
 def on_connect():
-    print('Connected to Highway Broker')
+    print('Connected to RabbitBroker')
     
     # Example 1: Fetch a single message by offset
     def handle_fetch(data, error, offset):
@@ -281,13 +281,13 @@ def on_connect():
             return
         print(f'Got message: offset={offset}, data={data}')
     
-    client.fetch_one('highway/A1/telemetry', 42, handle_fetch)
+    client.fetch_one('rabbit/A1/telemetry', 42, handle_fetch)
     
     # Example 2: Subscribe from offset (catch-up then live)
     def handle_subscribe_ack(ack):
         print(f'Subscription created: {ack}')
     
-    client.subscribe_from_offset('highway/A2/telemetry', 0, QoS.AT_LEAST_ONCE, handle_subscribe_ack)
+    client.subscribe_from_offset('rabbit/A2/telemetry', 0, QoS.AT_LEAST_ONCE, handle_subscribe_ack)
 
 def on_message(msg):
     print(f"[{msg['topic']}] offset={msg['offset']}: {msg['data']}")
@@ -375,7 +375,7 @@ Payload (v1.1):
 
 ```javascript
 // This still works exactly the same
-client.subscribe('highway/A1/telemetry', QoS.AT_MOST_ONCE);
+client.subscribe('rabbit/A1/telemetry', QoS.AT_MOST_ONCE);
 
 client.on('message', (msg) => {
   // Can ignore offset if using v1.0 mode
@@ -436,7 +436,7 @@ Enable verbose logging:
 
 ```javascript
 // JavaScript
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'debug-client',
@@ -448,12 +448,12 @@ const client = new HighwayClient({
 # Python
 import logging
 logging.basicConfig(level=logging.DEBUG)
-client = HighwayClient('localhost', 1883, 'debug-client')
+client = RabbitClient('localhost', 1883, 'debug-client')
 ```
 
 ## See Also
 
 - [OFFSET_ACCESS_IMPLEMENTATION.md](OFFSET_ACCESS_IMPLEMENTATION.md) - Broker implementation details
-- [Highway Protocol](PROTOCOL.md) - Full protocol specification
+- [Rabbit Protocol](PROTOCOL.md) - Full protocol specification
 - [JavaScript Client Documentation](../client/javascript/README.md)
 - [Python Client Documentation](../client/python/README.md)

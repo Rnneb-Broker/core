@@ -4,7 +4,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  Highway Broker (C++)                        │
+│                  RabbitBroker (C++)                        │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  Network Layer (TCP/MQTT-lite protocol)             │   │
 │  │  - Handles multiple concurrent connections          │   │
@@ -33,7 +33,7 @@
 ┌──────────────┴──────────────────────────────────────────────┐
 │              JavaScript Clients (Node.js)                    │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  HighwayClient (highway-client.js)                  │   │
+│  │  RabbitClient (rabbit-client.js)                  │   │
 │  │  - Binary packet protocol                           │   │
 │  │  - Event-driven architecture (EventEmitter)         │   │
 │  │  - Automatic reconnection                           │   │
@@ -80,7 +80,7 @@ node --version  # Should be v18+
 
 # Verify client files
 ls -la *.js
-# Should show: highway-client.js
+# Should show: rabbit-client.js
 
 # Verify examples
 ls -la examples/
@@ -100,7 +100,7 @@ cd /path/to/kafka-system/build
 ```bash
 cd /path/to/kafka-system/client
 node examples/consumer.js
-# Output: [+] Connected to Highway Broker
+# Output: [+] Connected to RabbitBroker
 #         Waiting for messages...
 ```
 
@@ -115,7 +115,7 @@ node examples/producer.js
 **Consumer Terminal Output:**
 ```
 📨 Message received:
-   Topic: highway/1001/telemetry
+   Topic: rabbit/1001/telemetry
    Data: {"timestamp":"...","sensorId":"1001","speed":45,...}
 ```
 
@@ -139,7 +139,7 @@ JavaScript Client               C++ Broker
       |                              |
       | SUBSCRIBE packet            |
       |------- (binary) ---------->|
-      |          (topic: "highway/+/telemetry")
+      |          (topic: "rabbit/+/telemetry")
       |                    [Match subscriptions]
       |<------ SUBACK packet -------|
       |                              |
@@ -194,7 +194,7 @@ Type         Payload data
 ### Runtime Options
 
 The broker automatically:
-1. **Creates storage directories**: `storage/highway/<topic>/`
+1. **Creates storage directories**: `storage/rabbit/<topic>/`
 2. **Enables persistent logging**: Each topic gets `.log` files
 3. **Maintains sparse index**: One entry per 1024 messages
 4. **Validates data**: CRC32 checksums on all writes
@@ -220,7 +220,7 @@ const size_t SPARSE_INDEX_INTERVAL = 1024; // Index every 1024 messages
 ### Recommended Settings
 
 ```javascript
-const client = new HighwayClient({
+const client = new RabbitClient({
   // Connection
   host: process.env.BROKER_HOST || 'localhost',
   port: process.env.BROKER_PORT || 1883,
@@ -353,7 +353,7 @@ watch -n 1 'du -sh storage/'
 
 ```javascript
 // Add to consumer example for debugging
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'debug-client'
@@ -388,10 +388,10 @@ client.on('message', (msg) => {
 **File: `examples/telemetry.js`**
 
 ```javascript
-const { HighwayClient, QoS } = require('../highway-client.js');
+const { RabbitClient, QoS } = require('../rabbit-client.js');
 const os = require('os');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   clientId: `telemetry-${os.hostname()}`
 });
 
@@ -429,9 +429,9 @@ client.on('error', (err) => {
 **File: `examples/alerts.js`**
 
 ```javascript
-const { HighwayClient, QoS } = require('../highway-client.js');
+const { RabbitClient, QoS } = require('../rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   clientId: 'alert-monitor'
 });
 

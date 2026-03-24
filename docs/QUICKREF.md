@@ -42,12 +42,12 @@ cd kafka-system/build && ctest
 
 ### Import
 ```javascript
-const { HighwayClient, QoS } = require('./highway-client.js');
+const { RabbitClient, QoS } = require('./rabbit-client.js');
 ```
 
 ### Create Client
 ```javascript
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'my-app'
@@ -126,7 +126,7 @@ kafka-system/
 │       ├── broker.cpp              ← Main broker
 │       └── session.hpp             ← Per-client state
 ├── client/
-│   ├── highway-client.js   ← Main library
+│   ├── rabbit-client.js   ← Main library
 │   ├── API.md              ← API reference
 │   ├── TESTING.md          ← Testing guide
 │   └── examples/
@@ -176,7 +176,7 @@ netstat -tlnp | grep 1883
 
 ### View Storage
 ```bash
-ls -la storage/highway/
+ls -la storage/rabbit/
 find storage -name "*.log" | wc -l
 du -sh storage/
 ```
@@ -286,7 +286,7 @@ cmake --build build --target clean
 # Check Status
 ps aux | grep broker           # Broker running?
 netstat -tlnp | grep 1883     # Port listening?
-ls storage/highway/ -la        # Storage files?
+ls storage/rabbit/ -la        # Storage files?
 du -sh storage/               # Storage size?
 
 # Debug

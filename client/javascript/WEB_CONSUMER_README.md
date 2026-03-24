@@ -1,6 +1,6 @@
-# Highway Broker - Web Consumer
+# RabbitBroker - Web Consumer
 
-A minimal web-based consumer interface for the Highway Broker system. This allows users to subscribe to topics and view messages in real-time directly from their web browser.
+A minimal web-based consumer interface for the RabbitBroker system. This allows users to subscribe to topics and view messages in real-time directly from their web browser.
 
 ## Features
 
@@ -14,8 +14,8 @@ A minimal web-based consumer interface for the Highway Broker system. This allow
 ## Files
 
 - **`consumer.html`** - The main web consumer page
-- **`highway-client-browser.js`** - Browser-compatible WebSocket client
-- **`highway-client.js`** - Node.js TCP client (for server-side applications)
+- **`rabbit-client-browser.js`** - Browser-compatible WebSocket client
+- **`rabbit-client.js`** - Node.js TCP client (for server-side applications)
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ Create a simple bridge using the provided script below or use a tool like `ws` n
 
 ### 2. Start the Broker
 
-Make sure your Highway Broker is running:
+Make sure your RabbitBroker is running:
 
 ```bash
 # From the kafka-system directory
@@ -65,7 +65,7 @@ Then navigate to: `http://localhost:8000/consumer.html`
 ### 4. Connect and Subscribe
 
 1. **Connect**: Click the "Connect" button (default: `ws://localhost:8080`)
-2. **Subscribe**: Enter a topic pattern (e.g., `highway/+/telemetry`) and click "Subscribe"
+2. **Subscribe**: Enter a topic pattern (e.g., `rabbit/+/telemetry`) and click "Subscribe"
 3. **Watch Messages**: Messages will appear in real-time as they're published
 
 ## Usage Examples
@@ -73,10 +73,10 @@ Then navigate to: `http://localhost:8000/consumer.html`
 ### Common Topic Patterns
 
 ```
-highway/+/telemetry        # All telemetry from any sensor
-highway/+/alerts           # All alerts from any sensor
-highway/sensor1/telemetry  # Specific sensor telemetry
-highway/#                  # All highway topics
+rabbit/+/telemetry        # All telemetry from any sensor
+rabbit/+/alerts           # All alerts from any sensor
+rabbit/sensor1/telemetry  # Specific sensor telemetry
+rabbit/#                  # All rabbit topics
 ```
 
 ### Connection Settings
@@ -160,7 +160,7 @@ node ws-bridge.js
 
 ```
 ┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│   Browser   │ WebSocket│  WS Bridge   │   TCP   │   Highway   │
+│   Browser   │ WebSocket│  WS Bridge   │   TCP   │   Rabbit   │
 │  (consumer. │◄────────►│  (port 8080) │◄────────►│   Broker    │
 │    html)    │          │              │         │ (port 1883) │
 └─────────────┘         └──────────────┘         └─────────────┘
@@ -183,7 +183,7 @@ Tested on:
 ### Connection Failed
 
 - **Check WebSocket Bridge**: Make sure the bridge is running on the correct port
-- **Check Broker**: Ensure the Highway Broker is running and accepting connections
+- **Check Broker**: Ensure the RabbitBroker is running and accepting connections
 - **Firewall**: Verify firewall rules allow WebSocket connections
 
 ### No Messages Appearing
@@ -218,11 +218,11 @@ For production environments:
 
 ## API Reference
 
-### HighwayBrowserClient
+### RabbitBrowserClient
 
 ```javascript
 // Create client
-const client = new HighwayBrowserClient({
+const client = new RabbitBrowserClient({
   url: 'ws://localhost:8080',
   clientId: 'my-client',
   keepalive: 60

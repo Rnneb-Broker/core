@@ -1,15 +1,15 @@
-# Highway Broker Python Client - API Reference
+# RabbitBroker Python Client - API Reference
 
 ## Classes
 
-### HighwayClient
+### RabbitClient
 
-Main client class for connecting to and communicating with the Highway Broker.
+Main client class for connecting to and communicating with the RabbitBroker.
 
 #### Constructor
 
 ```python
-client = HighwayClient(config: dict = None)
+client = RabbitClient(config: dict = None)
 ```
 
 **Parameters:**
@@ -186,7 +186,7 @@ print(f"Subscribed to: {topics}")
 Helper class for manual binary packet construction.
 
 ```python
-from highway_client import BinaryWriter
+from rabbit_client import BinaryWriter
 
 writer = BinaryWriter()
 writer.write_u8(255)           # Write unsigned 8-bit integer
@@ -215,7 +215,7 @@ data = writer.release()         # Get resulting bytes
 Helper class for manual binary packet parsing.
 
 ```python
-from highway_client import BinaryReader
+from rabbit_client import BinaryReader
 
 reader = BinaryReader(data)
 value = reader.read_u8()        # Read unsigned 8-bit integer
@@ -294,9 +294,9 @@ State.DISCONNECTING = 'DISCONNECTING'
 ### Basic Subscribe and Receive
 
 ```python
-from highway_client import HighwayClient, QoS
+from rabbit_client import RabbitClient, QoS
 
-client = HighwayClient({
+client = RabbitClient({
     'host': 'localhost',
     'port': 1883,
     'client_id': 'my-subscriber'
@@ -321,10 +321,10 @@ while True:
 ### Basic Publish
 
 ```python
-from highway_client import HighwayClient, QoS
+from rabbit_client import RabbitClient, QoS
 import json
 
-client = HighwayClient({
+client = RabbitClient({
     'host': 'localhost',
     'port': 1883,
     'client_id': 'my-publisher'
@@ -341,9 +341,9 @@ client.on('connect', on_connect)
 ### Error Handling
 
 ```python
-from highway_client import HighwayClient
+from rabbit_client import RabbitClient
 
-client = HighwayClient({'host': 'localhost', 'port': 1883})
+client = RabbitClient({'host': 'localhost', 'port': 1883})
 
 def on_error(err):
     print(f"Client error: {err}")

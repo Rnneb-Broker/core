@@ -1,6 +1,6 @@
-# Highway Broker Python Client
+# RabbitBroker Python Client
 
-Complete implementation of the Highway Broker MQTT-lite protocol client in Python with the same API structure as the JavaScript client.
+Complete implementation of the RabbitBroker MQTT-lite protocol client in Python with the same API structure as the JavaScript client.
 
 ## Features
 
@@ -23,9 +23,9 @@ python3 -m pip install --upgrade pip
 ### Basic Connection
 
 ```python
-from highway_client import HighwayClient, QoS
+from rabbit_client import RabbitClient, QoS
 
-client = HighwayClient({
+client = RabbitClient({
     'host': 'localhost',
     'port': 1883,
     'client_id': 'my-client'
@@ -49,12 +49,12 @@ while True:
 
 ## API
 
-### HighwayClient
+### RabbitClient
 
 #### Constructor Options
 
 ```python
-client = HighwayClient({
+client = RabbitClient({
     'host': 'localhost',        # Broker host
     'port': 1883,               # Broker port
     'client_id': 'my-client',   # Unique client ID
@@ -144,7 +144,7 @@ client = HighwayClient({
 For manual packet construction:
 
 ```python
-from highway_client import BinaryWriter, BinaryReader
+from rabbit_client import BinaryWriter, BinaryReader
 
 # Writing
 writer = BinaryWriter()
@@ -165,10 +165,10 @@ text = reader.read_string()
 ### Producer
 
 ```python
-from highway_client import HighwayClient, QoS
+from rabbit_client import RabbitClient, QoS
 import json
 
-client = HighwayClient({'host': 'localhost', 'port': 1883})
+client = RabbitClient({'host': 'localhost', 'port': 1883})
 
 def on_connect():
     client.publish('sensor/1/temp', json.dumps({'temp': 25.5}), QoS.AT_LEAST_ONCE)
@@ -181,9 +181,9 @@ See `examples/producer.py` for full example.
 ### Consumer
 
 ```python
-from highway_client import HighwayClient, QoS
+from rabbit_client import RabbitClient, QoS
 
-client = HighwayClient({'host': 'localhost', 'port': 1883})
+client = RabbitClient({'host': 'localhost', 'port': 1883})
 
 def on_connect():
     client.subscribe('sensor/+/temp', QoS.AT_LEAST_ONCE)
@@ -229,7 +229,7 @@ The Python client has the same API interface but with Python conventions:
 
 | Feature | JavaScript | Python |
 |---------|-----------|--------|
-| Constructor | `new HighwayClient()` | `HighwayClient()` |
+| Constructor | `new RabbitClient()` | `RabbitClient()` |
 | Config keys | camelCase | snake_case |
 | Event emitter | `EventEmitter` pattern | Custom event system |
 | Callbacks | Promise-friendly | Regular callbacks |
@@ -271,4 +271,4 @@ except Exception as e:
 
 ## License
 
-Same as Highway Broker project
+Same as RabbitBroker project

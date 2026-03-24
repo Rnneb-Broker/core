@@ -61,18 +61,18 @@ You should see messages appear in the web interface!
 
 | Topic Pattern | Description |
 |--------------|-------------|
-| `highway/+/telemetry` | All sensor telemetry |
-| `highway/+/alerts` | All sensor alerts |
-| `highway/sensor1/telemetry` | Specific sensor |
-| `highway/#` | Everything |
+| `rabbit/+/telemetry` | All sensor telemetry |
+| `rabbit/+/alerts` | All sensor alerts |
+| `rabbit/sensor1/telemetry` | Specific sensor |
+| `rabbit/#` | Everything |
 
 ---
 
 ## Files Overview
 
 - **consumer.html** - Web interface
-- **highway-client-browser.js** - Browser client library
-- **highway-client.js** - Node.js client library
+- **rabbit-client-browser.js** - Browser client library
+- **rabbit-client.js** - Node.js client library
 - **ws-bridge.js** - WebSocket-to-TCP bridge
 - **start-web-consumer.sh** - Quick start script
 - **examples/** - Example scripts
@@ -101,7 +101,7 @@ You should see messages appear in the web interface!
        │ localhost:1883
        ▼
 ┌──────────────┐
-│   Highway    │  ./build/broker
+│   Rabbit    │  ./build/broker
 │   Broker     │
 │ (port 1883)  │
 └──────────────┘
@@ -187,4 +187,4 @@ For production deployment:
 
 ---
 
-**Made with ❤️ for Highway Broker**
+**Made with ❤️ for RabbitBroker**

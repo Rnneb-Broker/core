@@ -1,13 +1,13 @@
 # JavaScript Client API Reference
 
-## HighwayClient Class
+## RabbitClient Class
 
-The main client for connecting to Highway Broker.
+The main client for connecting to RabbitBroker.
 
 ### Constructor
 
 ```javascript
-const client = new HighwayClient(config)
+const client = new RabbitClient(config)
 ```
 
 #### Configuration Options
@@ -25,9 +25,9 @@ const client = new HighwayClient(config)
 #### Example
 
 ```javascript
-const { HighwayClient } = require('./highway-client.js');
+const { RabbitClient } = require('./rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'broker.example.com',
   port: 1883,
   clientId: 'my-app-client',
@@ -83,11 +83,11 @@ Subscribe to a topic. Supports MQTT-style wildcards:
 client.subscribe('cars/speed', QoS.AT_LEAST_ONCE);
 
 // Multiple topics (call subscribe multiple times)
-client.subscribe('highway/+/telemetry', QoS.AT_LEAST_ONCE);
-client.subscribe('highway/+/alerts', QoS.AT_MOST_ONCE);
+client.subscribe('rabbit/+/telemetry', QoS.AT_LEAST_ONCE);
+client.subscribe('rabbit/+/alerts', QoS.AT_MOST_ONCE);
 
-// All topics under highway
-client.subscribe('highway/#', QoS.AT_LEAST_ONCE);
+// All topics under rabbit
+client.subscribe('rabbit/#', QoS.AT_LEAST_ONCE);
 ```
 
 **Parameters:**
@@ -181,7 +181,7 @@ Get list of currently subscribed topics.
 ```javascript
 const topics = client.getSubscriptions();
 console.log(topics);
-// ['highway/+/telemetry', 'highway/+/alerts']
+// ['rabbit/+/telemetry', 'rabbit/+/alerts']
 ```
 
 **Returns:** `string[]`
@@ -276,7 +276,7 @@ client.on('puback', (result) => {
 ## Quality of Service (QoS)
 
 ```javascript
-const { QoS } = require('./highway-client.js');
+const { QoS } = require('./rabbit-client.js');
 
 QoS.AT_MOST_ONCE   // 0 - Fire and forget
 QoS.AT_LEAST_ONCE  // 1 - Guaranteed delivery
@@ -288,9 +288,9 @@ QoS.EXACTLY_ONCE   // 2 - Single delivery
 ## Complete Example
 
 ```javascript
-const { HighwayClient, QoS } = require('./highway-client.js');
+const { RabbitClient, QoS } = require('./rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'node-app-1'

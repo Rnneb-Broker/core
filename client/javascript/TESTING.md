@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Highway Broker compiled and built (see main README.md)
+- RabbitBroker compiled and built (see main README.md)
 - Node.js v18+ (tested with v22.22.0)
 - Broker listening on `localhost:1883` (default)
 
@@ -48,8 +48,8 @@ cd /path/to/kafka-system/build
 cd /path/to/kafka-system/client
 node examples/consumer.js
 # Should show: Connecting to localhost:1883
-#             [+] Connected to Highway Broker
-#             Subscribed to: highway/+/telemetry, highway/+/alerts
+#             [+] Connected to RabbitBroker
+#             Subscribed to: rabbit/+/telemetry, rabbit/+/alerts
 #             Waiting for messages... (Ctrl+C to exit)
 ```
 
@@ -68,13 +68,13 @@ node examples/producer.js
 
 ```
 📨 Message received:
-   Topic: highway/1001/telemetry
+   Topic: rabbit/1001/telemetry
    Data: {"timestamp":"2024-01-15T12:34:56.789Z","sensorId":"1001","speed":45,"vehicles":12}
    QoS: 1
    PacketId: 42
 
 📨 Message received:
-   Topic: highway/1002/telemetry
+   Topic: rabbit/1002/telemetry
    Data: {"timestamp":"2024-01-15T12:34:57.123Z","sensorId":"1002","speed":62,"vehicles":8}
    QoS: 1
    PacketId: 43
@@ -83,7 +83,7 @@ node examples/producer.js
 **Success Criteria:**
 - [+] Producer publishes messages
 - [+] Consumer receives them with correct topic/data
-- [+] Wildcard subscription works (`highway/+/telemetry`)
+- [+] Wildcard subscription works (`rabbit/+/telemetry`)
 - [+] No connection errors
 
 ---
@@ -138,7 +138,7 @@ cd /path/to/kafka-system/build
 ```bash
 cd /path/to/kafka-system/client
 node examples/monitor.js
-# Should show: Connected to Highway Broker
+# Should show: Connected to RabbitBroker
 #             Monitoring telemetry and alerts...
 #             (Stats update every 10 seconds)
 ```
@@ -190,7 +190,7 @@ Verify that messages are persisted in the broker's storage.
 cd /path/to/kafka-system/build
 ./broker
 # Check storage directory
-ls -la storage/highway/
+ls -la storage/rabbit/
 ```
 
 ### Terminal 2 - Start Producer
@@ -205,14 +205,14 @@ node examples/producer.js
 
 ```bash
 # List all segment files
-find storage/highway -name "*.log" -type f
+find storage/rabbit -name "*.log" -type f
 
 # Check file sizes (should be > 0)
-ls -lh storage/highway/*/
+ls -lh storage/rabbit/*/
 
 # You should see files like:
-# storage/highway/1001/000000000000.log
-# storage/highway/1002/000000000000.log
+# storage/rabbit/1001/000000000000.log
+# storage/rabbit/1002/000000000000.log
 # etc.
 ```
 
@@ -231,7 +231,7 @@ node examples/consumer.js
 ```
 
 **Success Criteria:**
-- [+] Storage files created in `storage/highway/*/`
+- [+] Storage files created in `storage/rabbit/*/`
 - [+] Files contain binary message data
 - [+] Broker restarts don't lose sent messages
 
@@ -244,9 +244,9 @@ Test throughput and buffering behavior.
 ### Create `examples/highload.js`:
 
 ```javascript
-const { HighwayClient, QoS } = require('../highway-client.js');
+const { RabbitClient, QoS } = require('../rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   clientId: 'highload-test'
@@ -306,9 +306,9 @@ node examples/highload.js
 ### Test Connection Refused
 
 ```javascript
-const { HighwayClient } = require('./highway-client.js');
+const { RabbitClient } = require('./rabbit-client.js');
 
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 9999,  // Wrong port
   autoConnect: true
@@ -323,7 +323,7 @@ client.on('error', (err) => {
 ### Test Authentication Failure
 
 ```javascript
-const client = new HighwayClient({
+const client = new RabbitClient({
   host: 'localhost',
   port: 1883,
   username: 'wrong-user',
@@ -351,8 +351,8 @@ client.on('error', (err) => {
 
 ### "Module not found"
 - run from client directory
-- Verify `highway-client.js` exists
-- Check: `ls -la highway-client.js`
+- Verify `rabbit-client.js` exists
+- Check: `ls -la rabbit-client.js`
 
 ### "No messages received"
 - Producer might not be running
@@ -388,7 +388,7 @@ Add verbose logging to monitor:
 ### In `consumer.js`:
 
 ```javascript
-const client = new HighwayClient({ /* ... */ });
+const client = new RabbitClient({ /* ... */ });
 
 // Add before connect
 client.on('connect', () => {
